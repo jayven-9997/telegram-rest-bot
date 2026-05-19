@@ -265,3 +265,5 @@ bot.on('callback_query', async (query) => {
 
   await bot.answerCallbackQuery(query.id);
 });
+
+setInterval(() => {}, 1000);
