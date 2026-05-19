@@ -137,8 +137,8 @@ function buildStallKeyboard(date) {
 
       row.push({
         text: isClosed
-          ? `${stall.id} ${stall.name} 🔴`
-          : `${stall.id} ${stall.name} 🟢`,
+          ? `${stall.id}|${stall.name}🔴`
+          : `${stall.id}|${stall.name}🟢`,
         callback_data: `stall_${date}_${stall.id}`
       });
     }
@@ -148,7 +148,7 @@ function buildStallKeyboard(date) {
 
   keyboard.push([
     {
-      text: '⬅️ 返回日期',
+      text: '⬅️返回日期',
       callback_data: 'back_dates'
     }
   ]);
@@ -192,7 +192,7 @@ bot.onText(/\/start/, async (msg) => {
 
   await bot.sendMessage(
     msg.chat.id,
-    '📅 请选择休息日期',
+    '📅请选择休息日期',
     {
       reply_markup: buildDateKeyboard()
     }
@@ -254,7 +254,7 @@ bot.on('callback_query', async (query) => {
   else if (data === 'back_dates') {
 
     await bot.editMessageText(
-      '📅 请选择休息日期',
+      '📅请选择休息日期',
       {
         chat_id: query.message.chat.id,
         message_id: query.message.message_id,
