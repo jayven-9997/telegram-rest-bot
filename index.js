@@ -67,6 +67,7 @@ const stalls = [
 let schedule = {};
 
 let panelMessageId = null;
+let summaryMessageId = null;
 
 if (fs.existsSync('save.json')) {
 
@@ -216,6 +217,38 @@ ${closedText}
 `;
 }
 
+function buildSummaryText() {
+
+  let text = '📋未来14天休息总览\n\n';
+
+  let days = getNext14Days();
+
+  days.forEach(date => {
+
+    text += `📅 ${date}\n`;
+
+    let closed = schedule[date] || [];
+
+    if (closed.length === 0) {
+
+      text += '🟢 全部营业\n';
+
+    } else {
+
+      closed.forEach(id => {
+
+        let stall = stalls.find(s => s.id === id);
+
+        text += `🔴 ${stall.id} ${stall.name}\n`;
+      });
+    }
+
+    text += '\n━━━━━━━━━━\n\n';
+  });
+
+  return text;
+}
+
 async function sendOrUpdatePanel() {
 
   try {
@@ -244,11 +277,38 @@ async function sendOrUpdatePanel() {
       );
 
       panelMessageId = msg.message_id;
+    }
 
-      await bot.pinChatMessage(
-        GROUP_ID,
-        panelMessageId
+  } catch (err) {
+
+    console.log(err.message);
+  }
+}
+
+async function sendOrUpdateSummary() {
+
+  try {
+
+    const text = buildSummaryText();
+
+    if (summaryMessageId) {
+
+      await bot.editMessageText(
+        text,
+        {
+          chat_id: GROUP_ID,
+          message_id: summaryMessageId
+        }
       );
+
+    } else {
+
+      const msg = await bot.sendMessage(
+        GROUP_ID,
+        text
+      );
+
+      summaryMessageId = msg.message_id;
     }
 
   } catch (err) {
@@ -329,6 +389,8 @@ bot.on('callback_query', async (query) => {
 
     saveData();
 
+    sendOrUpdateSummary();
+
     await bot.editMessageText(
       buildDateMessage(date),
       {
@@ -356,11 +418,17 @@ bot.on('callback_query', async (query) => {
 
 cleanOldDates();
 
+sendOrUpdatePanel();
+
+sendOrUpdateSummary();
+
 setInterval(() => {
 
   cleanOldDates();
 
   sendOrUpdatePanel();
+
+  sendOrUpdateSummary();
 
 }, 1000 * 60 * 5);
 
