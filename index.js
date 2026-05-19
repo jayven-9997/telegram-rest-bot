@@ -15,9 +15,7 @@ app.get('/', (req, res) => {
 app.listen(process.env.PORT || 3000);
 
 const bot = new TelegramBot(token, {
-  polling: {
-    interval: 300
-  }
+  polling: true
 });
 
 console.log('Bot started');
@@ -66,9 +64,6 @@ const stalls = [
 
 let schedule = {};
 
-let panelMessageId = null;
-let summaryMessageId = null;
-
 if (fs.existsSync('save.json')) {
 
   const data = fs.readFileSync('save.json');
@@ -88,9 +83,11 @@ function cleanOldDates() {
 
   let today = new Date();
 
+  today.setHours(0,0,0,0);
+
   Object.keys(schedule).forEach(date => {
 
-    if (new Date(date) < today.setHours(0,0,0,0)) {
+    if (new Date(date) < today) {
 
       delete schedule[date];
     }
@@ -166,8 +163,8 @@ function buildStallKeyboard(date) {
 
       row.push({
         text: isClosed
-          ? `${stall.id}|${stall.name}🔴`
-          : `${stall.id}|${stall.name}🟢`,
+          ? `${stall.id} ${stall.name} 🔴`
+          : `${stall.id} ${stall.name} 🟢`,
         callback_data: `stall_${date}_${stall.id}`
       });
     }
@@ -249,72 +246,23 @@ function buildSummaryText() {
   return text;
 }
 
-async function sendOrUpdatePanel() {
+async function sendMainPanel() {
 
-  try {
-
-    const text = '📅请选择休息日期';
-
-    if (panelMessageId) {
-
-      await bot.editMessageText(
-        text,
-        {
-          chat_id: GROUP_ID,
-          message_id: panelMessageId,
-          reply_markup: buildDateKeyboard()
-        }
-      );
-
-    } else {
-
-      const msg = await bot.sendMessage(
-        GROUP_ID,
-        text,
-        {
-          reply_markup: buildDateKeyboard()
-        }
-      );
-
-      panelMessageId = msg.message_id;
+  await bot.sendMessage(
+    GROUP_ID,
+    '📅请选择休息日期',
+    {
+      reply_markup: buildDateKeyboard()
     }
-
-  } catch (err) {
-
-    console.log(err.message);
-  }
+  );
 }
 
-async function sendOrUpdateSummary() {
+async function sendSummaryPanel() {
 
-  try {
-
-    const text = buildSummaryText();
-
-    if (summaryMessageId) {
-
-      await bot.editMessageText(
-        text,
-        {
-          chat_id: GROUP_ID,
-          message_id: summaryMessageId
-        }
-      );
-
-    } else {
-
-      const msg = await bot.sendMessage(
-        GROUP_ID,
-        text
-      );
-
-      summaryMessageId = msg.message_id;
-    }
-
-  } catch (err) {
-
-    console.log(err.message);
-  }
+  await bot.sendMessage(
+    GROUP_ID,
+    buildSummaryText()
+  );
 }
 
 async function sendTodayAnnouncement() {
@@ -346,6 +294,13 @@ async function sendTodayAnnouncement() {
 
   await bot.sendMessage(GROUP_ID, text);
 }
+
+bot.onText(/\/panel/, async () => {
+
+  await sendMainPanel();
+
+  await sendSummaryPanel();
+});
 
 bot.on('callback_query', async (query) => {
 
@@ -389,8 +344,6 @@ bot.on('callback_query', async (query) => {
 
     saveData();
 
-    sendOrUpdateSummary();
-
     await bot.editMessageText(
       buildDateMessage(date),
       {
@@ -418,19 +371,23 @@ bot.on('callback_query', async (query) => {
 
 cleanOldDates();
 
-sendOrUpdatePanel();
-
-sendOrUpdateSummary();
-
 setInterval(() => {
 
-  cleanOldDates();
+  let now = new Date();
 
-  sendOrUpdatePanel();
+  if (
+    now.getHours() === 0 &&
+    now.getMinutes() === 0
+  ) {
 
-  sendOrUpdateSummary();
+    cleanOldDates();
 
-}, 1000 * 60 * 5);
+    sendMainPanel();
+
+    sendSummaryPanel();
+  }
+
+}, 1000 * 60);
 
 setInterval(() => {
 
