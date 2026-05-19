@@ -1,7 +1,18 @@
 const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
+const express = require('express');
 
 const token = process.env.BOT_TOKEN;
+
+const GROUP_ID = -5260137598;
+
+const app = express();
+
+app.get('/', (req, res) => {
+  res.send('Bot running');
+});
+
+app.listen(process.env.PORT || 3000);
 
 const bot = new TelegramBot(token, {
   polling: {
@@ -55,6 +66,8 @@ const stalls = [
 
 let schedule = {};
 
+let panelMessageId = null;
+
 if (fs.existsSync('save.json')) {
 
   const data = fs.readFileSync('save.json');
@@ -68,6 +81,21 @@ function saveData() {
     'save.json',
     JSON.stringify(schedule)
   );
+}
+
+function cleanOldDates() {
+
+  let today = new Date();
+
+  Object.keys(schedule).forEach(date => {
+
+    if (new Date(date) < today.setHours(0,0,0,0)) {
+
+      delete schedule[date];
+    }
+  });
+
+  saveData();
 }
 
 function getNext14Days() {
@@ -188,18 +216,76 @@ ${closedText}
 `;
 }
 
-bot.onText(/\/start/, async (msg) => {
-  
-console.log(msg.chat.id);
-  
-  await bot.sendMessage(
-    msg.chat.id,
-    '📅请选择休息日期',
-    {
-      reply_markup: buildDateKeyboard()
+async function sendOrUpdatePanel() {
+
+  try {
+
+    const text = '📅请选择休息日期';
+
+    if (panelMessageId) {
+
+      await bot.editMessageText(
+        text,
+        {
+          chat_id: GROUP_ID,
+          message_id: panelMessageId,
+          reply_markup: buildDateKeyboard()
+        }
+      );
+
+    } else {
+
+      const msg = await bot.sendMessage(
+        GROUP_ID,
+        text,
+        {
+          reply_markup: buildDateKeyboard()
+        }
+      );
+
+      panelMessageId = msg.message_id;
+
+      await bot.pinChatMessage(
+        GROUP_ID,
+        panelMessageId
+      );
     }
-  );
-});
+
+  } catch (err) {
+
+    console.log(err.message);
+  }
+}
+
+async function sendTodayAnnouncement() {
+
+  let today = new Date();
+
+  let key =
+    today.getFullYear() + '-' +
+    String(today.getMonth() + 1).padStart(2,'0') + '-' +
+    String(today.getDate()).padStart(2,'0');
+
+  let closed = schedule[key] || [];
+
+  let text = `📢 今日休息通知\n\n`;
+
+  if (closed.length === 0) {
+
+    text += '今天全部营业 🟢';
+
+  } else {
+
+    closed.forEach(id => {
+
+      let stall = stalls.find(s => s.id === id);
+
+      text += `🔴 ${stall.id} ${stall.name}\n`;
+    });
+  }
+
+  await bot.sendMessage(GROUP_ID, text);
+}
 
 bot.on('callback_query', async (query) => {
 
@@ -268,14 +354,30 @@ bot.on('callback_query', async (query) => {
   await bot.answerCallbackQuery(query.id);
 });
 
+cleanOldDates();
+
+sendOrUpdatePanel();
+
+setInterval(() => {
+
+  cleanOldDates();
+
+  sendOrUpdatePanel();
+
+}, 1000 * 60 * 60);
+
+setInterval(() => {
+
+  let now = new Date();
+
+  if (
+    now.getHours() === 9 &&
+    now.getMinutes() === 0
+  ) {
+
+    sendTodayAnnouncement();
+  }
+
+}, 1000 * 60);
+
 setInterval(() => {}, 1000);
-
-const express = require('express');
-
-const app = express();
-
-app.get('/', (req, res) => {
-  res.send('Bot running');
-});
-
-app.listen(process.env.PORT || 3000);
