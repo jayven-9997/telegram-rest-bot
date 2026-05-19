@@ -189,7 +189,9 @@ ${closedText}
 }
 
 bot.onText(/\/start/, async (msg) => {
-
+  
+console.log(msg.chat.id);
+  
   await bot.sendMessage(
     msg.chat.id,
     '📅请选择休息日期',
