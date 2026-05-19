@@ -2,8 +2,13 @@ const TelegramBot = require('node-telegram-bot-api');
 
 const token = process.env.BOT_TOKEN;
 
-const bot = new TelegramBot(token, { polling: true });
+const bot = new TelegramBot(token, {
+  polling: {
+    interval: 300
+  }
+});
 
+console.log('Bot started');
 const stalls = [
 { id:'888', name:'杂菜饭' },
 { id:'801', name:'桦记椰浆饭' },
