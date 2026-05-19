@@ -125,11 +125,11 @@ function buildStallKeyboard(date) {
 
   let closed = schedule[date] || [];
 
-  for (let i = 0; i < stalls.length; i += 2) {
+  for (let i = 0; i < stalls.length; i += 3) {
 
     let row = [];
 
-    for (let j = i; j < i + 2 && j < stalls.length; j++) {
+    for (let j = i; j < i + 3 && j < stalls.length; j++) {
 
       let stall = stalls[j];
 
@@ -137,8 +137,8 @@ function buildStallKeyboard(date) {
 
       row.push({
         text: isClosed
-          ? `${stall.id} 🔴`
-          : `${stall.id} 🟢`,
+          ? `${stall.id} ${stall.name} 🔴`
+          : `${stall.id} ${stall.name} 🟢`,
         callback_data: `stall_${date}_${stall.id}`
       });
     }
@@ -267,11 +267,3 @@ bot.on('callback_query', async (query) => {
 });
 
 setInterval(() => {}, 1000);
-
-bot.on('message', (msg) => {
-
-  console.log(
-    msg.from.first_name,
-    msg.from.id
-  );
-});
