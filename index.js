@@ -125,11 +125,11 @@ function buildStallKeyboard(date) {
 
   let closed = schedule[date] || [];
 
-  for (let i = 0; i < stalls.length; i += 3) {
+  for (let i = 0; i < stalls.length; i += 2) {
 
     let row = [];
 
-    for (let j = i; j < i + 3 && j < stalls.length; j++) {
+    for (let j = i; j < i + 2 && j < stalls.length; j++) {
 
       let stall = stalls[j];
 
