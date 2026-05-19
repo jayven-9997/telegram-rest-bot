@@ -1,4 +1,5 @@
 const TelegramBot = require('node-telegram-bot-api');
+const fs = require('fs');
 
 const token = process.env.BOT_TOKEN;
 
@@ -9,6 +10,7 @@ const bot = new TelegramBot(token, {
 });
 
 console.log('Bot started');
+
 const stalls = [
 { id:'888', name:'杂菜饭' },
 { id:'801', name:'桦记椰浆饭' },
@@ -52,6 +54,21 @@ const stalls = [
 ];
 
 let schedule = {};
+
+if (fs.existsSync('save.json')) {
+
+  const data = fs.readFileSync('save.json');
+
+  schedule = JSON.parse(data);
+}
+
+function saveData() {
+
+  fs.writeFileSync(
+    'save.json',
+    JSON.stringify(schedule)
+  );
+}
 
 function getNext14Days() {
 
@@ -221,6 +238,8 @@ bot.on('callback_query', async (query) => {
 
       schedule[date].push(stallId);
     }
+
+    saveData();
 
     await bot.editMessageText(
       buildDateMessage(date),
