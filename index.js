@@ -385,18 +385,6 @@ setInterval(() => {
     sendMainPanel();
 
     sendSummaryPanel();
-  }
-
-}, 1000 * 60);
-
-setInterval(() => {
-
-  let now = new Date();
-
-  if (
-    now.getHours() === 9 &&
-    now.getMinutes() === 0
-  ) {
 
     sendTodayAnnouncement();
   }
