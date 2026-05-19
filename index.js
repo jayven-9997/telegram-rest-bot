@@ -364,7 +364,7 @@ setInterval(() => {
 
   sendOrUpdatePanel();
 
-}, 1000 * 60 * 60);
+}, 1000 * 60 * 5);
 
 setInterval(() => {
 
