@@ -356,8 +356,6 @@ bot.on('callback_query', async (query) => {
 
 cleanOldDates();
 
-sendOrUpdatePanel();
-
 setInterval(() => {
 
   cleanOldDates();
