@@ -267,3 +267,11 @@ bot.on('callback_query', async (query) => {
 });
 
 setInterval(() => {}, 1000);
+
+bot.on('message', (msg) => {
+
+  console.log(
+    msg.from.first_name,
+    msg.from.id
+  );
+});
