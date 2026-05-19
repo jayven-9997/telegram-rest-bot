@@ -267,3 +267,13 @@ bot.on('callback_query', async (query) => {
 });
 
 setInterval(() => {}, 1000);
+
+const express = require('express');
+
+const app = express();
+
+app.get('/', (req, res) => {
+  res.send('Bot running');
+});
+
+app.listen(process.env.PORT || 3000);
