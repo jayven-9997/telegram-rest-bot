@@ -81,7 +81,7 @@ function saveData() {
 
 function cleanOldDates() {
 
-  let today = new Date();
+  const today = new Date();
 
   today.setHours(0,0,0,0);
 
@@ -119,7 +119,7 @@ function getNext14Days() {
 
 function buildDateKeyboard() {
 
-  let days = getNext14Days();
+  const days = getNext14Days();
 
   let keyboard = [];
 
@@ -129,11 +129,9 @@ function buildDateKeyboard() {
 
     for (let j = i; j < i + 3 && j < days.length; j++) {
 
-      let day = days[j];
-
       row.push({
-        text: day.slice(5),
-        callback_data: 'date_' + day
+        text: days[j].slice(5),
+        callback_data: 'date_' + days[j]
       });
     }
 
@@ -157,14 +155,14 @@ function buildStallKeyboard(date) {
 
     for (let j = i; j < i + 2 && j < stalls.length; j++) {
 
-      let stall = stalls[j];
+      const stall = stalls[j];
 
-      let isClosed = closed.includes(stall.id);
+      const isClosed = closed.includes(stall.id);
 
       row.push({
         text: isClosed
-          ? `${stall.id} ${stall.name} 🔴`
-          : `${stall.id} ${stall.name} 🟢`,
+          ? `${stall.id}|${stall.name}🔴`
+          : `${stall.id}|${stall.name}🟢`,
         callback_data: `stall_${date}_${stall.id}`
       });
     }
@@ -188,43 +186,43 @@ function buildDateMessage(date) {
 
   let closed = schedule[date] || [];
 
-  let closedText = '无';
+  let text = `📅 ${date}\n\n`;
 
-  if (closed.length > 0) {
+  text += `🔴 休息档口：\n\n`;
 
-    closedText = closed.map(id => {
+  if (closed.length === 0) {
+
+    text += '无';
+
+  } else {
+
+    closed.forEach(id => {
 
       let stall = stalls.find(s => s.id === id);
 
-      return `${stall.id} ${stall.name}`;
+      if (stall) {
 
-    }).join('\n');
+        text += `${stall.id} ${stall.name}\n`;
+      }
+    });
   }
 
-  return `
-📅 ${date}
+  text += '\n\n━━━━━━━━━━\n\n点击下面档口切换状态';
 
-🔴 休息档口：
-
-${closedText}
-
-━━━━━━━━━━
-
-点击下面档口切换状态
-`;
+  return text;
 }
 
 function buildSummaryText() {
 
   let text = '📋未来14天休息总览\n\n';
 
-  let days = getNext14Days();
+  const days = getNext14Days();
 
   days.forEach(date => {
 
     text += `📅 ${date}\n`;
 
-    let closed = schedule[date] || [];
+    const closed = schedule[date] || [];
 
     if (closed.length === 0) {
 
@@ -234,9 +232,12 @@ function buildSummaryText() {
 
       closed.forEach(id => {
 
-        let stall = stalls.find(s => s.id === id);
+        const stall = stalls.find(s => s.id === id);
 
-        text += `🔴 ${stall.id} ${stall.name}\n`;
+        if (stall) {
+
+          text += `🔴 ${stall.id} ${stall.name}\n`;
+        }
       });
     }
 
@@ -246,10 +247,10 @@ function buildSummaryText() {
   return text;
 }
 
-async function sendMainPanel() {
+async function sendPanel(chatId) {
 
   await bot.sendMessage(
-    GROUP_ID,
+    chatId,
     '📅请选择休息日期',
     {
       reply_markup: buildDateKeyboard()
@@ -257,7 +258,7 @@ async function sendMainPanel() {
   );
 }
 
-async function sendSummaryPanel() {
+async function sendSummary() {
 
   await bot.sendMessage(
     GROUP_ID,
@@ -267,134 +268,143 @@ async function sendSummaryPanel() {
 
 async function sendTodayAnnouncement() {
 
-  let today = new Date();
+  const today = new Date();
 
-  let key =
+  const key =
     today.getFullYear() + '-' +
     String(today.getMonth() + 1).padStart(2,'0') + '-' +
     String(today.getDate()).padStart(2,'0');
 
-  let closed = schedule[key] || [];
+  let text = '📢 今日休息通知\n\n';
 
-  let text = `📢 今日休息通知\n\n`;
+  const closed = schedule[key] || [];
 
   if (closed.length === 0) {
 
-    text += '今天全部营业 🟢';
+    text += '🟢 今天全部营业';
 
   } else {
 
     closed.forEach(id => {
 
-      let stall = stalls.find(s => s.id === id);
+      const stall = stalls.find(s => s.id === id);
 
-      text += `🔴 ${stall.id} ${stall.name}\n`;
+      if (stall) {
+
+        text += `🔴 ${stall.id} ${stall.name}\n`;
+      }
     });
   }
 
   await bot.sendMessage(GROUP_ID, text);
 }
 
-bot.onText(/\/panel/, async () => {
+bot.onText(/\/start/, async (msg) => {
 
-  await sendMainPanel();
-
-  await sendSummaryPanel();
+  await sendPanel(msg.chat.id);
 });
 
 bot.on('callback_query', async (query) => {
 
-  const data = query.data;
+  try {
 
-  if (data.startsWith('date_')) {
+    await bot.answerCallbackQuery(query.id);
 
-    let date = data.replace('date_', '');
+    const data = query.data;
 
-    await bot.editMessageText(
-      buildDateMessage(date),
-      {
-        chat_id: query.message.chat.id,
-        message_id: query.message.message_id,
-        reply_markup: buildStallKeyboard(date)
-      }
-    );
-  }
+    if (data.startsWith('date_')) {
 
-  else if (data.startsWith('stall_')) {
+      const date = data.replace('date_', '');
 
-    let parts = data.split('_');
-
-    let date = parts[1];
-
-    let stallId = parts[2];
-
-    if (!schedule[date]) {
-      schedule[date] = [];
+      await bot.editMessageText(
+        buildDateMessage(date),
+        {
+          chat_id: query.message.chat.id,
+          message_id: query.message.message_id,
+          reply_markup: buildStallKeyboard(date)
+        }
+      );
     }
 
-    if (schedule[date].includes(stallId)) {
+    else if (data.startsWith('stall_')) {
 
-      schedule[date] =
-        schedule[date].filter(x => x !== stallId);
+      const parts = data.split('_');
 
-    } else {
+      const date = parts[1];
 
-      schedule[date].push(stallId);
+      const stallId = parts[2];
+
+      if (!schedule[date]) {
+
+        schedule[date] = [];
+      }
+
+      if (schedule[date].includes(stallId)) {
+
+        schedule[date] =
+          schedule[date].filter(x => x !== stallId);
+
+      } else {
+
+        schedule[date].push(stallId);
+      }
+
+      saveData();
+
+      await bot.editMessageText(
+        buildDateMessage(date),
+        {
+          chat_id: query.message.chat.id,
+          message_id: query.message.message_id,
+          reply_markup: buildStallKeyboard(date)
+        }
+      );
+
+      await sendSummary();
     }
 
-    saveData();
+    else if (data === 'back_dates') {
 
-    await bot.editMessageText(
-      buildDateMessage(date),
-      {
-        chat_id: query.message.chat.id,
-        message_id: query.message.message_id,
-        reply_markup: buildStallKeyboard(date)
-      }
-    );
+      await bot.editMessageText(
+        '📅请选择休息日期',
+        {
+          chat_id: query.message.chat.id,
+          message_id: query.message.message_id,
+          reply_markup: buildDateKeyboard()
+        }
+      );
+    }
+
+  } catch(err) {
+
+    console.log(err.message);
   }
-
-  else if (data === 'back_dates') {
-
-    await bot.editMessageText(
-      '📅请选择休息日期',
-      {
-        chat_id: query.message.chat.id,
-        message_id: query.message.message_id,
-        reply_markup: buildDateKeyboard()
-      }
-    );
-  }
-
-  await bot.answerCallbackQuery(query.id);
 });
 
 cleanOldDates();
 
-setInterval(() => {
+bot.sendMessage(
+  GROUP_ID,
+  '✅ 档口休息系统已启动'
+);
 
-  let now = new Date();
+sendPanel(GROUP_ID);
 
-  if (
-    now.getHours() === 0 &&
-    now.getMinutes() === 0
-  ) {
-
-    cleanOldDates();
-
-    sendMainPanel();
-
-    sendSummaryPanel();
-  }
-
-}, 1000 * 60);
+sendSummary();
 
 setInterval(() => {
 
-  let now = new Date();
+  cleanOldDates();
+
+}, 1000 * 60 * 30);
+
+setInterval(() => {
+
+  const now = new Date();
 
   if (
-    now.getHours() === 9 &&
+    (now.getHours() === 7 || now.getHours() === 19)
+    &&
     now.getMinutes() === 0
   ) {
 
@@ -402,5 +412,3 @@ setInterval(() => {
   }
 
 }, 1000 * 60);
-
-setInterval(() => {}, 1000);
