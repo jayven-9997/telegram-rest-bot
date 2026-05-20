@@ -1,8 +1,11 @@
+process.env.NTBA_FIX_350 = 1;
+
 const TelegramBot = require('node-telegram-bot-api');
-const fs = require('fs');
 const express = require('express');
+const fs = require('fs');
 
 const token = process.env.BOT_TOKEN;
+
 const GROUP_ID = -5260137598;
 
 const app = express();
@@ -19,15 +22,6 @@ const bot = new TelegramBot(token, {
 
 console.log('Bot started');
 
-const owners = {
-
-  // 修改成老板自己的 Telegram ID
-
-  '801': 123456789,
-  '802': 123456789
-
-};
-
 const stalls = [
 
 { id:'888', name:'杂菜饭' },
@@ -35,40 +29,7 @@ const stalls = [
 { id:'802', name:'大姑猪肠粉' },
 { id:'803', name:'鱼头米粉' },
 { id:'804', name:'许记云吞面' },
-{ id:'805', name:'福州美食' },
-{ id:'806', name:'吉祥面粉粿' },
-{ id:'807', name:'大吉咖喱鱼头' },
-{ id:'808', name:'包点' },
-{ id:'809', name:'JC煮炒' },
-{ id:'810', name:'肉骨茶' },
-{ id:'811', name:'兰姐砂锅菜' },
-{ id:'812', name:'日本餐' },
-{ id:'813', name:'老陈粿条汤' },
-{ id:'815', name:'药材鱼汤' },
-{ id:'816', name:'监牢饭' },
-{ id:'817', name:'薄饼' },
-{ id:'818', name:'ROJAK' },
-{ id:'819', name:'鹿鼎记' },
-{ id:'820', name:'面包王' },
-{ id:'823', name:'麻辣烫' },
-{ id:'824', name:'靓汤王' },
-{ id:'826', name:'擂茶' },
-{ id:'827', name:'可爱粥' },
-{ id:'829', name:'可爱鸡' },
-{ id:'830', name:'古早味云吞面' },
-{ id:'831', name:'228炒粿条' },
-{ id:'832', name:'老黄酿豆腐' },
-{ id:'833', name:'西餐' },
-{ id:'834', name:'鸡饭' },
-{ id:'835', name:'泰国炒' },
-{ id:'901', name:'二哥汉堡' },
-{ id:'902', name:'面粉粿' },
-{ id:'903', name:'SATAY' },
-{ id:'904', name:'烤鸡翅膀' },
-{ id:'905', name:'烧鱼' },
-{ id:'906', name:'经济米粉' },
-{ id:'907', name:'油条' },
-{ id:'908', name:'糕点' }
+{ id:'805', name:'福州美食' }
 
 ];
 
@@ -87,23 +48,6 @@ function saveData() {
     'save.json',
     JSON.stringify(schedule)
   );
-}
-
-function cleanOldDates() {
-
-  let today = new Date();
-
-  today.setHours(0,0,0,0);
-
-  Object.keys(schedule).forEach(date => {
-
-    if (new Date(date) < today) {
-
-      delete schedule[date];
-    }
-  });
-
-  saveData();
 }
 
 function getNext14Days() {
@@ -129,9 +73,9 @@ function getNext14Days() {
 
 function buildDateKeyboard() {
 
-  let days = getNext14Days();
-
   let keyboard = [];
+
+  let days = getNext14Days();
 
   for (let i = 0; i < days.length; i += 3) {
 
@@ -139,11 +83,9 @@ function buildDateKeyboard() {
 
     for (let j = i; j < i + 3 && j < days.length; j++) {
 
-      let day = days[j];
-
       row.push({
-        text: day.slice(5),
-        callback_data: 'date_' + day
+        text: days[j].slice(5),
+        callback_data: 'date_' + days[j]
       });
     }
 
@@ -169,13 +111,14 @@ function buildStallKeyboard(date) {
 
       let stall = stalls[j];
 
-      let isClosed = closed.includes(stall.id);
+      let active = closed.includes(stall.id);
 
       row.push({
-        text: isClosed
+        text: active
           ? `${stall.id} ${stall.name} 🔴`
           : `${stall.id} ${stall.name} 🟢`,
-        callback_data: `stall_${date}_${stall.id}`
+        callback_data:
+          `stall_${date}_${stall.id}`
       });
     }
 
@@ -184,8 +127,8 @@ function buildStallKeyboard(date) {
 
   keyboard.push([
     {
-      text: '⬅️返回日期',
-      callback_data: 'back_dates'
+      text:'⬅️返回',
+      callback_data:'back'
     }
   ]);
 
@@ -194,39 +137,7 @@ function buildStallKeyboard(date) {
   };
 }
 
-function buildSummaryText() {
-
-  let text = '📋未来14天休息总览\n\n';
-
-  let days = getNext14Days();
-
-  days.forEach(date => {
-
-    text += `📅 ${date}\n`;
-
-    let closed = schedule[date] || [];
-
-    if (closed.length === 0) {
-
-      text += '🟢 全部营业\n';
-
-    } else {
-
-      closed.forEach(id => {
-
-        let stall = stalls.find(s => s.id === id);
-
-        text += `🔴 ${stall.id} ${stall.name}\n`;
-      });
-    }
-
-    text += '\n━━━━━━━━━━\n\n';
-  });
-
-  return text;
-}
-
-function buildDateMessage(date) {
+function buildStatusText(date) {
 
   let closed = schedule[date] || [];
 
@@ -238,11 +149,12 @@ function buildDateMessage(date) {
 
   } else {
 
-    text += '🔴 今日休息：\n\n';
+    text += '🔴 休息档口：\n\n';
 
     closed.forEach(id => {
 
-      let stall = stalls.find(s => s.id === id);
+      let stall =
+        stalls.find(x => x.id === id);
 
       text += `${stall.id} ${stall.name}\n`;
     });
@@ -251,42 +163,15 @@ function buildDateMessage(date) {
   return text;
 }
 
-async function sendTodayAnnouncement() {
-
-  let today = new Date();
-
-  let key =
-    today.getFullYear() + '-' +
-    String(today.getMonth() + 1).padStart(2,'0') + '-' +
-    String(today.getDate()).padStart(2,'0');
-
-  await bot.sendMessage(
-    GROUP_ID,
-    buildDateMessage(key)
-  );
-}
-
 bot.onText(/\/panel/, async (msg) => {
 
   await bot.sendMessage(
     msg.chat.id,
     '📅请选择休息日期',
     {
-      reply_markup: buildDateKeyboard()
+      reply_markup:
+        buildDateKeyboard()
     }
-  );
-
-  await bot.sendMessage(
-    msg.chat.id,
-    buildSummaryText()
-  );
-});
-
-bot.onText(/\/id/, (msg) => {
-
-  bot.sendMessage(
-    msg.chat.id,
-    `你的Telegram ID:\n${msg.from.id}`
   );
 });
 
@@ -296,18 +181,22 @@ bot.on('callback_query', async (query) => {
 
   if (data.startsWith('date_')) {
 
-    let date = data.replace('date_', '');
+    let date =
+      data.replace('date_', '');
 
-    return bot.sendMessage(
+    await bot.sendMessage(
       query.message.chat.id,
-      `📅 ${date}\n请选择档口`,
+      buildStatusText(date),
       {
-        reply_markup: buildStallKeyboard(date)
+        reply_markup:
+          buildStallKeyboard(date)
       }
     );
   }
 
-  if (data.startsWith('stall_')) {
+  else if (
+    data.startsWith('stall_')
+  ) {
 
     let parts = data.split('_');
 
@@ -315,28 +204,14 @@ bot.on('callback_query', async (query) => {
 
     let stallId = parts[2];
 
-    const userId = query.from.id;
-
-    if (
-      owners[stallId] &&
-      owners[stallId] !== userId
-    ) {
-
-      return bot.answerCallbackQuery(
-        query.id,
-        {
-          text: '❌你不能修改这个档口',
-          show_alert: true
-        }
-      );
-    }
-
     if (!schedule[date]) {
 
       schedule[date] = [];
     }
 
-    if (schedule[date].includes(stallId)) {
+    if (
+      schedule[date].includes(stallId)
+    ) {
 
       schedule[date] =
         schedule[date].filter(
@@ -350,89 +225,52 @@ bot.on('callback_query', async (query) => {
 
     saveData();
 
-    return bot.sendMessage(
+    await bot.sendMessage(
       query.message.chat.id,
-      buildDateMessage(date),
+      buildStatusText(date),
       {
-        reply_markup: buildStallKeyboard(date)
+        reply_markup:
+          buildStallKeyboard(date)
       }
     );
   }
 
-  if (data === 'back_dates') {
+  else if (data === 'back') {
 
-    return bot.sendMessage(
+    await bot.sendMessage(
       query.message.chat.id,
       '📅请选择休息日期',
       {
-        reply_markup: buildDateKeyboard()
+        reply_markup:
+          buildDateKeyboard()
       }
     );
   }
-});
 
-cleanOldDates();
+  await bot.answerCallbackQuery(
+    query.id
+  );
+});
 
 setInterval(async () => {
 
   let now = new Date();
 
-  const hour = now.getHours();
-  const minute = now.getMinutes();
+  let h = now.getHours();
+  let m = now.getMinutes();
 
-  // 早上7点
   if (
-    hour === 7 &&
-    minute === 0
+    (h === 7 || h === 19) &&
+    m === 0
   ) {
-
-    cleanOldDates();
-
-    await bot.sendMessage(
-      GROUP_ID,
-      '🌞 早安，今日休息系统已更新'
-    );
 
     await bot.sendMessage(
       GROUP_ID,
       '📅请选择休息日期',
       {
-        reply_markup: buildDateKeyboard()
+        reply_markup:
+          buildDateKeyboard()
       }
-    );
-
-    await bot.sendMessage(
-      GROUP_ID,
-      buildSummaryText()
-    );
-
-    await sendTodayAnnouncement();
-  }
-
-  // 晚上7点
-  if (
-    hour === 19 &&
-    minute === 0
-  ) {
-
-    cleanOldDates();
-
-    await bot.sendMessage(
-      GROUP_ID,
-      '🌙 晚间休息系统更新'
-    );
-
-    await bot.sendMessage(
-      GROUP_ID,
-      '📅请选择休息日期',
-      {
-        reply_markup: buildDateKeyboard()
-      }
-    );
-
-    await bot.sendMessage(
-      GROUP_ID,
-      buildSummaryText()
     );
   }
 
