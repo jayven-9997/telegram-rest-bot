@@ -20,7 +20,17 @@ const bot = new TelegramBot(token, {
 
 console.log('Bot started');
 
+const owners = {
+
+  // 档口 : Telegram ID
+
+  '801': 123456789,
+  '802': 123456789
+
+};
+
 const stalls = [
+
 { id:'888', name:'杂菜饭' },
 { id:'801', name:'桦记椰浆饭' },
 { id:'802', name:'大姑猪肠粉' },
@@ -60,6 +70,7 @@ const stalls = [
 { id:'906', name:'经济米粉' },
 { id:'907', name:'油条' },
 { id:'908', name:'糕点' }
+
 ];
 
 let schedule = {};
@@ -246,25 +257,6 @@ function buildSummaryText() {
   return text;
 }
 
-async function sendMainPanel() {
-
-  await bot.sendMessage(
-    GROUP_ID,
-    '📅请选择休息日期',
-    {
-      reply_markup: buildDateKeyboard()
-    }
-  );
-}
-
-async function sendSummaryPanel() {
-
-  await bot.sendMessage(
-    GROUP_ID,
-    buildSummaryText()
-  );
-}
-
 async function sendTodayAnnouncement() {
 
   let today = new Date();
@@ -295,12 +287,22 @@ async function sendTodayAnnouncement() {
   await bot.sendMessage(GROUP_ID, text);
 }
 
-bot.onText(/\/panel/, async () => {
+bot.onText(/\/panel/, async (msg) => {
 
-  await sendMainPanel();
+  await bot.sendMessage(
+    msg.chat.id,
+    '📅请选择休息日期',
+    {
+      reply_markup: buildDateKeyboard()
+    }
+  );
 
-  await sendSummaryPanel();
+  await bot.sendMessage(
+    msg.chat.id,
+    buildSummaryText()
+  );
 });
+
 bot.onText(/\/id/, (msg) => {
 
   bot.sendMessage(
@@ -308,6 +310,7 @@ bot.onText(/\/id/, (msg) => {
     `你的Telegram ID:\n${msg.from.id}`
   );
 });
+
 bot.on('callback_query', async (query) => {
 
   const data = query.data;
@@ -333,6 +336,22 @@ bot.on('callback_query', async (query) => {
     let date = parts[1];
 
     let stallId = parts[2];
+
+    const userId = query.from.id;
+
+    if (
+      owners[stallId] &&
+      owners[stallId] !== userId
+    ) {
+
+      return bot.answerCallbackQuery(
+        query.id,
+        {
+          text: '❌你不能修改这个档口',
+          show_alert: true
+        }
+      );
+    }
 
     if (!schedule[date]) {
       schedule[date] = [];
@@ -388,9 +407,18 @@ setInterval(() => {
 
     cleanOldDates();
 
-    sendMainPanel();
+    await bot.sendMessage(
+      GROUP_ID,
+      '📅请选择休息日期',
+      {
+        reply_markup: buildDateKeyboard()
+      }
+    );
 
-    sendSummaryPanel();
+    await bot.sendMessage(
+      GROUP_ID,
+      buildSummaryText()
+    );
 
     sendTodayAnnouncement();
   }
