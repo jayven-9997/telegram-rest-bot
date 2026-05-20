@@ -396,7 +396,7 @@ bot.on('callback_query', async (query) => {
 
 cleanOldDates();
 
-setInterval(() => {
+setInterval(async () => {
 
   let now = new Date();
 
