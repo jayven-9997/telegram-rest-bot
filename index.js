@@ -9,32 +9,28 @@ app.get('/', (req, res) => {
 
 app.listen(process.env.PORT || 3000);
 
-const token = process.env.BOT_TOKEN;
-
-const bot = new TelegramBot(token, {
+const bot = new TelegramBot(process.env.BOT_TOKEN, {
   polling: true
 });
 
 console.log('Bot started');
 
-const keyboard = {
-  inline_keyboard: [
-    [
-      {
-        text: '测试按钮',
-        callback_data: 'test'
-      }
-    ]
-  ]
-};
-
 bot.onText(/\/start/, async (msg) => {
 
   await bot.sendMessage(
     msg.chat.id,
-    '按钮测试',
+    '测试按钮',
     {
-      reply_markup: keyboard
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: '点击测试',
+              callback_data: 'ok'
+            }
+          ]
+        ]
+      }
     }
   );
 });
@@ -45,10 +41,10 @@ bot.on('callback_query', async (query) => {
 
     await bot.answerCallbackQuery(query.id);
 
-    if (query.data === 'test') {
+    if (query.data === 'ok') {
 
       await bot.editMessageText(
-        '按钮成功了 ✅',
+        '按钮成功 ✅',
         {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id
