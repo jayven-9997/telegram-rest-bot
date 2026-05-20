@@ -301,7 +301,13 @@ bot.onText(/\/panel/, async () => {
 
   await sendSummaryPanel();
 });
+bot.onText(/\/id/, (msg) => {
 
+  bot.sendMessage(
+    msg.chat.id,
+    `你的Telegram ID:\n${msg.from.id}`
+  );
+});
 bot.on('callback_query', async (query) => {
 
   const data = query.data;
