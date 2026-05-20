@@ -309,11 +309,6 @@ bot.on('callback_query', async (query) => {
             buildStallKeyboard(date)
         }
       );
-
-      await bot.sendMessage(
-        query.message.chat.id,
-        buildSummary()
-      );
     }
 
     else if (data === 'back') {
@@ -337,4 +332,29 @@ bot.on('callback_query', async (query) => {
 
     console.log(err.message);
   }
+});
+
+function sendSummary() {
+
+  bot.sendMessage(
+    -5260137598,
+    summaryText()
+  );
+}
+
+setInterval(() => {
+
+  const now = new Date();
+
+  if (
+    (now.getHours() === 7 ||
+     now.getHours() === 19)
+    &&
+    now.getMinutes() === 0
+  ) {
+
+    sendSummary();
+  }
+
+}, 60000);
 });
