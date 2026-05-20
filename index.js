@@ -3,7 +3,6 @@ const fs = require('fs');
 const express = require('express');
 
 const token = process.env.BOT_TOKEN;
-
 const GROUP_ID = -5260137598;
 
 const app = express();
@@ -22,7 +21,7 @@ console.log('Bot started');
 
 const owners = {
 
-  // 档口 : Telegram ID
+  // 修改成老板自己的 Telegram ID
 
   '801': 123456789,
   '802': 123456789
@@ -77,9 +76,9 @@ let schedule = {};
 
 if (fs.existsSync('save.json')) {
 
-  const data = fs.readFileSync('save.json');
-
-  schedule = JSON.parse(data);
+  schedule = JSON.parse(
+    fs.readFileSync('save.json')
+  );
 }
 
 function saveData() {
@@ -195,36 +194,6 @@ function buildStallKeyboard(date) {
   };
 }
 
-function buildDateMessage(date) {
-
-  let closed = schedule[date] || [];
-
-  let closedText = '无';
-
-  if (closed.length > 0) {
-
-    closedText = closed.map(id => {
-
-      let stall = stalls.find(s => s.id === id);
-
-      return `${stall.id} ${stall.name}`;
-
-    }).join('\n');
-  }
-
-  return `
-📅 ${date}
-
-🔴 休息档口：
-
-${closedText}
-
-━━━━━━━━━━
-
-点击下面档口切换状态
-`;
-}
-
 function buildSummaryText() {
 
   let text = '📋未来14天休息总览\n\n';
@@ -257,6 +226,31 @@ function buildSummaryText() {
   return text;
 }
 
+function buildDateMessage(date) {
+
+  let closed = schedule[date] || [];
+
+  let text = `📅 ${date}\n\n`;
+
+  if (closed.length === 0) {
+
+    text += '🟢 全部营业';
+
+  } else {
+
+    text += '🔴 今日休息：\n\n';
+
+    closed.forEach(id => {
+
+      let stall = stalls.find(s => s.id === id);
+
+      text += `${stall.id} ${stall.name}\n`;
+    });
+  }
+
+  return text;
+}
+
 async function sendTodayAnnouncement() {
 
   let today = new Date();
@@ -266,25 +260,10 @@ async function sendTodayAnnouncement() {
     String(today.getMonth() + 1).padStart(2,'0') + '-' +
     String(today.getDate()).padStart(2,'0');
 
-  let closed = schedule[key] || [];
-
-  let text = `📢 今日休息通知\n\n`;
-
-  if (closed.length === 0) {
-
-    text += '今天全部营业 🟢';
-
-  } else {
-
-    closed.forEach(id => {
-
-      let stall = stalls.find(s => s.id === id);
-
-      text += `🔴 ${stall.id} ${stall.name}\n`;
-    });
-  }
-
-  await bot.sendMessage(GROUP_ID, text);
+  await bot.sendMessage(
+    GROUP_ID,
+    buildDateMessage(key)
+  );
 }
 
 bot.onText(/\/panel/, async (msg) => {
@@ -319,17 +298,16 @@ bot.on('callback_query', async (query) => {
 
     let date = data.replace('date_', '');
 
-    await bot.editMessageText(
-      buildDateMessage(date),
+    return bot.sendMessage(
+      query.message.chat.id,
+      `📅 ${date}\n请选择档口`,
       {
-        chat_id: query.message.chat.id,
-        message_id: query.message.message_id,
         reply_markup: buildStallKeyboard(date)
       }
     );
   }
 
-  else if (data.startsWith('stall_')) {
+  if (data.startsWith('stall_')) {
 
     let parts = data.split('_');
 
@@ -354,13 +332,16 @@ bot.on('callback_query', async (query) => {
     }
 
     if (!schedule[date]) {
+
       schedule[date] = [];
     }
 
     if (schedule[date].includes(stallId)) {
 
       schedule[date] =
-        schedule[date].filter(x => x !== stallId);
+        schedule[date].filter(
+          x => x !== stallId
+        );
 
     } else {
 
@@ -369,29 +350,25 @@ bot.on('callback_query', async (query) => {
 
     saveData();
 
-    await bot.editMessageText(
+    return bot.sendMessage(
+      query.message.chat.id,
       buildDateMessage(date),
       {
-        chat_id: query.message.chat.id,
-        message_id: query.message.message_id,
         reply_markup: buildStallKeyboard(date)
       }
     );
   }
 
-  else if (data === 'back_dates') {
+  if (data === 'back_dates') {
 
-    await bot.editMessageText(
+    return bot.sendMessage(
+      query.message.chat.id,
       '📅请选择休息日期',
       {
-        chat_id: query.message.chat.id,
-        message_id: query.message.message_id,
         reply_markup: buildDateKeyboard()
       }
     );
   }
-
-  await bot.answerCallbackQuery(query.id);
 });
 
 cleanOldDates();
@@ -400,12 +377,21 @@ setInterval(async () => {
 
   let now = new Date();
 
+  const hour = now.getHours();
+  const minute = now.getMinutes();
+
+  // 早上7点
   if (
-    now.getHours() === 0 &&
-    now.getMinutes() === 0
+    hour === 7 &&
+    minute === 0
   ) {
 
     cleanOldDates();
+
+    await bot.sendMessage(
+      GROUP_ID,
+      '🌞 早安，今日休息系统已更新'
+    );
 
     await bot.sendMessage(
       GROUP_ID,
@@ -420,7 +406,34 @@ setInterval(async () => {
       buildSummaryText()
     );
 
-    sendTodayAnnouncement();
+    await sendTodayAnnouncement();
+  }
+
+  // 晚上7点
+  if (
+    hour === 19 &&
+    minute === 0
+  ) {
+
+    cleanOldDates();
+
+    await bot.sendMessage(
+      GROUP_ID,
+      '🌙 晚间休息系统更新'
+    );
+
+    await bot.sendMessage(
+      GROUP_ID,
+      '📅请选择休息日期',
+      {
+        reply_markup: buildDateKeyboard()
+      }
+    );
+
+    await bot.sendMessage(
+      GROUP_ID,
+      buildSummaryText()
+    );
   }
 
 }, 1000 * 60);
