@@ -1,8 +1,6 @@
-process.env.NTBA_FIX_350 = 1;
-
 const TelegramBot = require('node-telegram-bot-api');
-const express = require('express');
 const fs = require('fs');
+const express = require('express');
 
 const token = process.env.BOT_TOKEN;
 
@@ -23,7 +21,6 @@ const bot = new TelegramBot(token, {
 console.log('Bot started');
 
 const stalls = [
-
 { id:'888', name:'杂菜饭' },
 { id:'801', name:'桦记椰浆饭' },
 { id:'802', name:'大姑猪肠粉' },
@@ -63,16 +60,15 @@ const stalls = [
 { id:'906', name:'经济米粉' },
 { id:'907', name:'油条' },
 { id:'908', name:'糕点' }
-
 ];
 
 let schedule = {};
 
 if (fs.existsSync('save.json')) {
 
-  schedule = JSON.parse(
-    fs.readFileSync('save.json')
-  );
+  const data = fs.readFileSync('save.json');
+
+  schedule = JSON.parse(data);
 }
 
 function saveData() {
@@ -81,6 +77,23 @@ function saveData() {
     'save.json',
     JSON.stringify(schedule)
   );
+}
+
+function cleanOldDates() {
+
+  let today = new Date();
+
+  today.setHours(0,0,0,0);
+
+  Object.keys(schedule).forEach(date => {
+
+    if (new Date(date) < today) {
+
+      delete schedule[date];
+    }
+  });
+
+  saveData();
 }
 
 function getNext14Days() {
@@ -95,8 +108,8 @@ function getNext14Days() {
 
     let key =
       d.getFullYear() + '-' +
-      String(d.getMonth() + 1).padStart(2, '0') + '-' +
-      String(d.getDate()).padStart(2, '0');
+      String(d.getMonth() + 1).padStart(2,'0') + '-' +
+      String(d.getDate()).padStart(2,'0');
 
     days.push(key);
   }
@@ -106,9 +119,9 @@ function getNext14Days() {
 
 function buildDateKeyboard() {
 
-  const days = getNext14Days();
+  let days = getNext14Days();
 
-  const keyboard = [];
+  let keyboard = [];
 
   for (let i = 0; i < days.length; i += 3) {
 
@@ -116,9 +129,11 @@ function buildDateKeyboard() {
 
     for (let j = i; j < i + 3 && j < days.length; j++) {
 
+      let day = days[j];
+
       row.push({
-        text: days[j].slice(5),
-        callback_data: 'date_' + days[j]
+        text: day.slice(5),
+        callback_data: 'date_' + day
       });
     }
 
@@ -144,10 +159,10 @@ function buildStallKeyboard(date) {
 
       let stall = stalls[j];
 
-      let active = closed.includes(stall.id);
+      let isClosed = closed.includes(stall.id);
 
       row.push({
-        text: active
+        text: isClosed
           ? `${stall.id} ${stall.name} 🔴`
           : `${stall.id} ${stall.name} 🟢`,
         callback_data: `stall_${date}_${stall.id}`
@@ -169,41 +184,41 @@ function buildStallKeyboard(date) {
   };
 }
 
-function buildDateText(date) {
+function buildDateMessage(date) {
 
   let closed = schedule[date] || [];
 
-  let text = `📅 ${date}\n\n`;
+  let closedText = '无';
 
-  if (closed.length === 0) {
+  if (closed.length > 0) {
 
-    text += '🟢 全部营业';
+    closedText = closed.map(id => {
 
-  } else {
+      let stall = stalls.find(s => s.id === id);
 
-    text += '🔴 休息档口：\n\n';
+      return `${stall.id} ${stall.name}`;
 
-    closed.forEach(id => {
-
-      let stall = stalls.find(
-        x => x.id === id
-      );
-
-      if (stall) {
-
-        text += `${stall.id} ${stall.name}\n`;
-      }
-    });
+    }).join('\n');
   }
 
-  return text;
+  return `
+📅 ${date}
+
+🔴 休息档口：
+
+${closedText}
+
+━━━━━━━━━━
+
+点击下面档口切换状态
+`;
 }
 
 function buildSummaryText() {
 
   let text = '📋未来14天休息总览\n\n';
 
-  const days = getNext14Days();
+  let days = getNext14Days();
 
   days.forEach(date => {
 
@@ -219,14 +234,9 @@ function buildSummaryText() {
 
       closed.forEach(id => {
 
-        let stall = stalls.find(
-          x => x.id === id
-        );
+        let stall = stalls.find(s => s.id === id);
 
-        if (stall) {
-
-          text += `🔴 ${stall.id} ${stall.name}\n`;
-        }
+        text += `🔴 ${stall.id} ${stall.name}\n`;
       });
     }
 
@@ -236,41 +246,72 @@ function buildSummaryText() {
   return text;
 }
 
-async function sendPanel(chatId) {
+async function sendMainPanel() {
 
   await bot.sendMessage(
-    chatId,
+    GROUP_ID,
     '📅请选择休息日期',
     {
       reply_markup: buildDateKeyboard()
     }
   );
+}
+
+async function sendSummaryPanel() {
 
   await bot.sendMessage(
-    chatId,
+    GROUP_ID,
     buildSummaryText()
   );
 }
 
-bot.onText(/\/panel/, async (msg) => {
+async function sendTodayAnnouncement() {
 
-  await sendPanel(msg.chat.id);
+  let today = new Date();
+
+  let key =
+    today.getFullYear() + '-' +
+    String(today.getMonth() + 1).padStart(2,'0') + '-' +
+    String(today.getDate()).padStart(2,'0');
+
+  let closed = schedule[key] || [];
+
+  let text = `📢 今日休息通知\n\n`;
+
+  if (closed.length === 0) {
+
+    text += '今天全部营业 🟢';
+
+  } else {
+
+    closed.forEach(id => {
+
+      let stall = stalls.find(s => s.id === id);
+
+      text += `🔴 ${stall.id} ${stall.name}\n`;
+    });
+  }
+
+  await bot.sendMessage(GROUP_ID, text);
+}
+
+bot.onText(/\/panel/, async () => {
+
+  await sendMainPanel();
+
+  await sendSummaryPanel();
 });
 
 bot.on('callback_query', async (query) => {
 
   const data = query.data;
 
-  // 选择日期
   if (data.startsWith('date_')) {
 
-    const date = data.replace(
-      'date_',
-      ''
-    );
+    let date = data.replace('date_', '');
 
     await bot.editMessageText(
-      buildDateText(date),
+      buildDateMessage(date),
       {
         chat_id: query.message.chat.id,
         message_id: query.message.message_id,
@@ -279,28 +320,22 @@ bot.on('callback_query', async (query) => {
     );
   }
 
-  // 点击档口
   else if (data.startsWith('stall_')) {
 
-    const parts = data.split('_');
+    let parts = data.split('_');
 
-    const date = parts[1];
+    let date = parts[1];
 
-    const stallId = parts[2];
+    let stallId = parts[2];
 
     if (!schedule[date]) {
-
       schedule[date] = [];
     }
 
-    if (
-      schedule[date].includes(stallId)
-    ) {
+    if (schedule[date].includes(stallId)) {
 
       schedule[date] =
-        schedule[date].filter(
-          x => x !== stallId
-        );
+        schedule[date].filter(x => x !== stallId);
 
     } else {
 
@@ -310,7 +345,7 @@ bot.on('callback_query', async (query) => {
     saveData();
 
     await bot.editMessageText(
-      buildDateText(date),
+      buildDateMessage(date),
       {
         chat_id: query.message.chat.id,
         message_id: query.message.message_id,
@@ -319,7 +354,6 @@ bot.on('callback_query', async (query) => {
     );
   }
 
-  // 返回日期
   else if (data === 'back_dates') {
 
     await bot.editMessageText(
@@ -332,26 +366,39 @@ bot.on('callback_query', async (query) => {
     );
   }
 
-  await bot.answerCallbackQuery(
-    query.id
-  );
+  await bot.answerCallbackQuery(query.id);
 });
 
-// 自动早上7点、晚上7点更新
-setInterval(async () => {
+cleanOldDates();
 
-  const now = new Date();
+setInterval(() => {
 
-  const h = now.getHours();
-
-  const m = now.getMinutes();
+  let now = new Date();
 
   if (
-    (h === 7 || h === 19) &&
-    m === 0
+    now.getHours() === 0 &&
+    now.getMinutes() === 0
   ) {
 
-    await sendPanel(GROUP_ID);
+    cleanOldDates();
+
+    sendMainPanel();
+
+    sendSummaryPanel();
+  }
+
+}, 1000 * 60);
+
+setInterval(() => {
+
+  let now = new Date();
+
+  if (
+    now.getHours() === 9 &&
+    now.getMinutes() === 0
+  ) {
+
+    sendTodayAnnouncement();
   }
 
 }, 1000 * 60);
