@@ -40,19 +40,52 @@ async function startBot() {
 startBot();
 
 const stalls = [
-{ id:'801', name:'椰浆饭' },
-{ id:'802', name:'猪肠粉' },
+
+{ id:'888', name:'杂菜饭' },
+{ id:'801', name:'桦记椰浆饭' },
+{ id:'802', name:'大姑猪肠粉' },
 { id:'803', name:'鱼头米粉' },
-{ id:'804', name:'云吞面' },
-{ id:'805', name:'福州面' },
-{ id:'806', name:'面粉粿' },
-{ id:'807', name:'咖喱鱼头' },
+{ id:'804', name:'许记云吞面' },
+{ id:'805', name:'福州美食' },
+{ id:'806', name:'吉祥面粉粿' },
+{ id:'807', name:'大吉咖喱鱼头' },
 { id:'808', name:'包点' },
-{ id:'809', name:'煮炒' },
-{ id:'810', name:'肉骨茶' }
+{ id:'809', name:'JC煮炒' },
+{ id:'810', name:'肉骨茶' },
+{ id:'811', name:'兰姐砂锅菜' },
+{ id:'812', name:'日本餐' },
+{ id:'813', name:'老陈粿条汤' },
+{ id:'815', name:'药材鱼汤' },
+{ id:'816', name:'监牢饭' },
+{ id:'817', name:'薄饼' },
+{ id:'818', name:'ROJAK' },
+{ id:'819', name:'鹿鼎记' },
+{ id:'820', name:'面包王' },
+{ id:'823', name:'麻辣烫' },
+{ id:'824', name:'靓汤王' },
+{ id:'826', name:'擂茶' },
+{ id:'827', name:'可爱粥' },
+{ id:'829', name:'可爱鸡' },
+{ id:'830', name:'古早味云吞面' },
+{ id:'831', name:'228炒粿条' },
+{ id:'832', name:'老黄酿豆腐' },
+{ id:'833', name:'西餐' },
+{ id:'834', name:'鸡饭' },
+{ id:'835', name:'泰国炒' },
+{ id:'901', name:'二哥汉堡' },
+{ id:'902', name:'面粉粿' },
+{ id:'903', name:'SATAY' },
+{ id:'904', name:'烤鸡翅膀' },
+{ id:'905', name:'烧鱼' },
+{ id:'906', name:'经济米粉' },
+{ id:'907', name:'油条' },
+{ id:'908', name:'糕点' }
+
 ];
 
 let schedule = {};
+
+let summaryMessageId = null;
 
 if (fs.existsSync('save.json')) {
 
@@ -134,6 +167,7 @@ function buildStallKeyboard(date) {
         closed.includes(stall.id);
 
       row.push({
+
         text: isClosed
           ? `🔴${stall.id} ${stall.name}`
           : `🟢${stall.id} ${stall.name}`,
@@ -237,6 +271,36 @@ function buildSummaryText() {
   return text;
 }
 
+async function updateSummary() {
+
+  try {
+
+    if (summaryMessageId) {
+
+      await bot.editMessageText(
+        buildSummaryText(),
+        {
+          chat_id: GROUP_ID,
+          message_id: summaryMessageId
+        }
+      );
+
+    } else {
+
+      const msg = await bot.sendMessage(
+        GROUP_ID,
+        buildSummaryText()
+      );
+
+      summaryMessageId = msg.message_id;
+    }
+
+  } catch(err) {
+
+    console.log(err.message);
+  }
+}
+
 bot.onText(/\/start/, async (msg) => {
 
   await bot.sendMessage(
@@ -246,6 +310,8 @@ bot.onText(/\/start/, async (msg) => {
       reply_markup: buildDateKeyboard()
     }
   );
+
+  await updateSummary();
 });
 
 bot.on('callback_query', async (query) => {
@@ -317,6 +383,8 @@ bot.on('callback_query', async (query) => {
             query.message.message_id
         }
       );
+
+      await updateSummary();
     }
 
     else if (data === 'back') {
@@ -342,14 +410,6 @@ bot.on('callback_query', async (query) => {
   }
 });
 
-function sendSummary() {
-
-  bot.sendMessage(
-    GROUP_ID,
-    buildSummaryText()
-  );
-}
-
 setInterval(() => {
 
   const now = new Date();
@@ -361,7 +421,7 @@ setInterval(() => {
     now.getMinutes() === 0
   ) {
 
-    sendSummary();
+    updateSummary();
   }
 
 }, 60000);
