@@ -311,7 +311,12 @@ bot.onText(/\/start/, async (msg) => {
     }
   );
 
-  await updateSummary();
+  const msg2 = await bot.sendMessage(
+  GROUP_ID,
+  buildSummaryText()
+);
+
+summaryMessageId = msg2.message_id;
 });
 
 bot.on('callback_query', async (query) => {
