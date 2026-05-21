@@ -10,11 +10,34 @@ app.get('/', (req, res) => {
 
 app.listen(process.env.PORT || 3000);
 
-const bot = new TelegramBot(process.env.BOT_TOKEN, {
-  polling: true
-});
+const GROUP_ID = -5260137598;
 
-console.log('Bot started');
+const bot = new TelegramBot(
+  process.env.BOT_TOKEN,
+  {
+    polling: {
+      autoStart: false
+    }
+  }
+);
+
+async function startBot() {
+
+  try {
+
+    await bot.deleteWebHook();
+
+    await bot.startPolling();
+
+    console.log('Bot started');
+
+  } catch(err) {
+
+    console.log(err.message);
+  }
+}
+
+startBot();
 
 const stalls = [
 { id:'801', name:'椰浆饭' },
@@ -26,16 +49,7 @@ const stalls = [
 { id:'807', name:'咖喱鱼头' },
 { id:'808', name:'包点' },
 { id:'809', name:'煮炒' },
-{ id:'810', name:'肉骨茶' },
-{ id:'811', name:'砂锅菜' },
-{ id:'812', name:'日本餐' },
-{ id:'813', name:'粿条汤' },
-{ id:'815', name:'鱼汤' },
-{ id:'816', name:'监牢饭' },
-{ id:'817', name:'薄饼' },
-{ id:'818', name:'ROJAK' },
-{ id:'819', name:'鹿鼎记' },
-{ id:'820', name:'面包王' }
+{ id:'810', name:'肉骨茶' }
 ];
 
 let schedule = {};
@@ -121,8 +135,9 @@ function buildStallKeyboard(date) {
 
       row.push({
         text: isClosed
-          ? `🔴${stall.id}`
-          : `🟢${stall.id}`,
+          ? `🔴${stall.id} ${stall.name}`
+          : `🟢${stall.id} ${stall.name}`,
+
         callback_data:
           `stall_${date}_${stall.id}`
       });
@@ -133,8 +148,8 @@ function buildStallKeyboard(date) {
 
   keyboard.push([
     {
-      text: '⬅️返回日期',
-      callback_data: 'back'
+      text:'⬅️返回日期',
+      callback_data:'back'
     }
   ]);
 
@@ -172,7 +187,7 @@ function buildDateText(date) {
   return text;
 }
 
-function buildSummary() {
+function buildSummaryText() {
 
   const days = getNext10Days();
 
@@ -207,7 +222,8 @@ function buildSummary() {
 
           if (stall) {
 
-            row += `🔴${stall.id} `;
+            row +=
+              `🔴${stall.id} ${stall.name}   `;
           }
         }
 
@@ -229,11 +245,6 @@ bot.onText(/\/start/, async (msg) => {
     {
       reply_markup: buildDateKeyboard()
     }
-  );
-
-  await bot.sendMessage(
-    msg.chat.id,
-    buildSummary()
   );
 });
 
@@ -296,17 +307,14 @@ bot.on('callback_query', async (query) => {
 
       saveData();
 
-      await bot.editMessageText(
-        buildDateText(date),
+      await bot.editMessageReplyMarkup(
+        buildStallKeyboard(date),
         {
           chat_id:
             query.message.chat.id,
 
           message_id:
-            query.message.message_id,
-
-          reply_markup:
-            buildStallKeyboard(date)
+            query.message.message_id
         }
       );
     }
@@ -337,8 +345,8 @@ bot.on('callback_query', async (query) => {
 function sendSummary() {
 
   bot.sendMessage(
-    -5260137598,
-    summaryText()
+    GROUP_ID,
+    buildSummaryText()
   );
 }
 
@@ -357,4 +365,3 @@ setInterval(() => {
   }
 
 }, 60000);
-
