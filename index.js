@@ -555,3 +555,12 @@ setInterval(async () => {
   }
 
 }, 60000);
+
+bot.onText(/\/myid/, async (msg) => {
+
+  await bot.sendMessage(
+    msg.chat.id,
+    `你的ID: ${msg.from.id}`
+  );
+
+});
