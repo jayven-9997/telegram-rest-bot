@@ -531,7 +531,27 @@ setInterval(async () => {
     now.getMinutes() === 0
   ) {
 
-    await refreshSummary();
+    try {
+
+      const msg = await bot.sendMessage(
+        GROUP_ID,
+        buildSummaryText()
+      );
+
+      summaryMessageId = msg.message_id;
+
+      await bot.pinChatMessage(
+        GROUP_ID,
+        summaryMessageId,
+        {
+          disable_notification: true
+        }
+      );
+
+    } catch(err) {
+
+      console.log(err.message);
+    }
   }
 
 }, 60000);
