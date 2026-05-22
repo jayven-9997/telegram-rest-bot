@@ -353,6 +353,8 @@ async function refreshSummary() {
 
 bot.onText(/\/start/, async (msg) => {
 
+  await refreshSummary();
+
   await bot.sendMessage(
     msg.chat.id,
     '📅请选择日期',
@@ -360,15 +362,11 @@ bot.onText(/\/start/, async (msg) => {
       reply_markup: buildDateKeyboard()
     }
   );
-
-  await refreshSummary();
 });
 
 bot.on('callback_query', async (query) => {
 
   try {
-
-    await bot.answerCallbackQuery(query.id);
 
     const data = query.data;
 
@@ -390,11 +388,11 @@ bot.on('callback_query', async (query) => {
             buildStallKeyboard(date)
         }
       );
+
+      return;
     }
 
-    else if (
-      data.startsWith('stall_')
-    ) {
+    if (data.startsWith('stall_')) {
 
       const parts = data.split('_');
 
@@ -429,8 +427,8 @@ bot.on('callback_query', async (query) => {
           countShift(date,'晚');
 
         if (
-          (stall.type === '早' &&
-           earlyCount >= 3)
+          stall.type === '早' &&
+          earlyCount >= 3
         ) {
 
           return bot.answerCallbackQuery(
@@ -443,8 +441,8 @@ bot.on('callback_query', async (query) => {
         }
 
         if (
-          (stall.type === '晚' &&
-           nightCount >= 3)
+          stall.type === '晚' &&
+          nightCount >= 3
         ) {
 
           return bot.answerCallbackQuery(
@@ -495,9 +493,11 @@ bot.on('callback_query', async (query) => {
       );
 
       await refreshSummary();
+
+      return;
     }
 
-    else if (data === 'back') {
+    if (data === 'back') {
 
       await bot.editMessageText(
         '📅请选择日期',
