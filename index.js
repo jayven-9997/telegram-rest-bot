@@ -12,7 +12,7 @@ app.get('/', (req, res) => {
 
 app.listen(process.env.PORT || 3000);
 
-const GROUP_ID = -5260137598;
+const GROUP_ID = -100XXXXXXXXXX;
 
 const WEBHOOK_URL =
 'https://telegram-rest-bot.onrender.com';
@@ -165,8 +165,8 @@ function buildStallKeyboard(date) {
       row.push({
 
         text: isClosed
-          ? `🔴${stall.id} ${stall.name}`
-          : `🟢${stall.id} ${stall.name}`,
+          ? `🔴${stall.id}`
+          : `🟢${stall.id}`,
 
         callback_data:
           `stall_${date}_${stall.id}`
@@ -300,40 +300,7 @@ async function refreshSummary() {
 
     console.log(err.message);
   }
-} {
-
-  try {
-
-    if (summaryMessageId) {
-
-      try {
-
-        await bot.deleteMessage(
-          GROUP_ID,
-          summaryMessageId
-        );
-
-      } catch(e) {}
-    }
-
-    const msg = await bot.sendMessage(
-      GROUP_ID,
-      buildSummaryText()
-    );
-
-    summaryMessageId = msg.message_id;
-
-  } catch(err) {
-
-    console.log(err.message);
-  }
 }
-
-setTimeout(() => {
-
-  refreshSummary();
-
-}, 3000);
 
 bot.onText(/\/start/, async (msg) => {
 
@@ -348,6 +315,16 @@ bot.onText(/\/start/, async (msg) => {
   await refreshSummary();
 
 });
+
+bot.onText(/\/id/, async (msg) => {
+
+  await bot.sendMessage(
+    msg.chat.id,
+    `群组ID: ${msg.chat.id}`
+  );
+
+});
+
 bot.on('callback_query', async (query) => {
 
   try {
@@ -447,7 +424,7 @@ bot.on('callback_query', async (query) => {
   }
 });
 
-setInterval(() => {
+setInterval(async () => {
 
   const now = new Date();
 
@@ -458,16 +435,7 @@ setInterval(() => {
     now.getMinutes() === 0
   ) {
 
-    refreshSummary();
+    await refreshSummary();
   }
 
 }, 60000);
-
-bot.onText(/\/id/, async (msg) => {
-
-  await bot.sendMessage(
-    msg.chat.id,
-    `群组ID: ${msg.chat.id}`
-  );
-
-});
