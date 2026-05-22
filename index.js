@@ -251,7 +251,10 @@ function buildSummaryText() {
 
   getNext10Days().forEach(date => {
 
-    text += `📅${date.slice(5)}\n\n`;
+    text +=
+`━━━ 📅 ${date.slice(5)} ━━━
+
+`;
 
     const closed = schedule[date] || [];
 
