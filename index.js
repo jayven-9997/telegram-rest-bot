@@ -15,29 +15,9 @@ const GROUP_ID = -5260137598;
 const bot = new TelegramBot(
   process.env.BOT_TOKEN,
   {
-    polling: {
-      autoStart: false
-    }
+    polling: true
   }
 );
-
-async function startBot() {
-
-  try {
-
-    await bot.deleteWebHook();
-
-    await bot.startPolling();
-
-    console.log('Bot started');
-
-  } catch(err) {
-
-    console.log(err.message);
-  }
-}
-
-startBot();
 
 const stalls = [
 
@@ -60,26 +40,7 @@ const stalls = [
 { id:'817', name:'薄饼' },
 { id:'818', name:'ROJAK' },
 { id:'819', name:'鹿鼎记' },
-{ id:'820', name:'面包王' },
-{ id:'823', name:'麻辣烫' },
-{ id:'824', name:'靓汤王' },
-{ id:'826', name:'擂茶' },
-{ id:'827', name:'可爱粥' },
-{ id:'829', name:'可爱鸡' },
-{ id:'830', name:'古早味云吞面' },
-{ id:'831', name:'228炒粿条' },
-{ id:'832', name:'老黄酿豆腐' },
-{ id:'833', name:'西餐' },
-{ id:'834', name:'鸡饭' },
-{ id:'835', name:'泰国炒' },
-{ id:'901', name:'二哥汉堡' },
-{ id:'902', name:'面粉粿' },
-{ id:'903', name:'SATAY' },
-{ id:'904', name:'烤鸡翅膀' },
-{ id:'905', name:'烧鱼' },
-{ id:'906', name:'经济米粉' },
-{ id:'907', name:'油条' },
-{ id:'908', name:'糕点' }
+{ id:'820', name:'面包王' }
 
 ];
 
@@ -121,6 +82,83 @@ function getNext10Days() {
   }
 
   return days;
+}
+
+function buildSummaryText() {
+
+  let text = '📋未来10天休息总览\n\n';
+
+  getNext10Days().forEach(date => {
+
+    text += `📅 ${date.slice(5)}\n`;
+
+    const closed = schedule[date] || [];
+
+    if (closed.length === 0) {
+
+      text += '🟢全部营业\n\n';
+
+    } else {
+
+      for (let i = 0; i < closed.length; i += 2) {
+
+        let row = '';
+
+        for (
+          let j = i;
+          j < i + 2 && j < closed.length;
+          j++
+        ) {
+
+          const stall =
+            stalls.find(
+              s => s.id === closed[j]
+            );
+
+          if (stall) {
+
+            row +=
+              `🔴${stall.id} ${stall.name}   `;
+          }
+        }
+
+        text += row + '\n';
+      }
+
+      text += '\n';
+    }
+  });
+
+  return text;
+}
+
+async function refreshSummary() {
+
+  try {
+
+    if (summaryMessageId) {
+
+      try {
+
+        await bot.deleteMessage(
+          GROUP_ID,
+          summaryMessageId
+        );
+
+      } catch(e) {}
+    }
+
+    const msg = await bot.sendMessage(
+      GROUP_ID,
+      buildSummaryText()
+    );
+
+    summaryMessageId = msg.message_id;
+
+  } catch(err) {
+
+    console.log(err.message);
+  }
 }
 
 function buildDateKeyboard() {
@@ -221,89 +259,9 @@ function buildDateText(date) {
   return text;
 }
 
-function buildSummaryText() {
-
-  const days = getNext10Days();
-
-  let text = `📋未来10天休息总览\n\n`;
-
-  days.forEach(date => {
-
-    text += `📅 ${date.slice(5)}\n`;
-
-    const closed = schedule[date] || [];
-
-    if (closed.length === 0) {
-
-      text += `🟢全部营业\n\n`;
-
-    } else {
-
-      for (let i = 0; i < closed.length; i += 2) {
-
-        let row = '';
-
-        for (
-          let j = i;
-          j < i + 2 && j < closed.length;
-          j++
-        ) {
-
-          const stall =
-            stalls.find(
-              s => s.id === closed[j]
-            );
-
-          if (stall) {
-
-            row +=
-              `🔴${stall.id} ${stall.name}   `;
-          }
-        }
-
-        text += row + '\n';
-      }
-
-      text += '\n';
-    }
-  });
-
-  return text;
-}
-
-async function createSummaryMessage() {
-
-  const msg = await bot.sendMessage(
-    GROUP_ID,
-    buildSummaryText()
-  );
-
-  summaryMessageId = msg.message_id;
-}
-
-async function updateSummaryMessage() {
-
-  if (!summaryMessageId) return;
-
-  try {
-
-    await bot.editMessageText(
-      buildSummaryText(),
-      {
-        chat_id: GROUP_ID,
-        message_id: summaryMessageId
-      }
-    );
-
-  } catch(err) {
-
-    console.log(err.message);
-  }
-}
-
 setTimeout(() => {
 
-  createSummaryMessage();
+  refreshSummary();
 
 }, 3000);
 
@@ -391,7 +349,7 @@ bot.on('callback_query', async (query) => {
         }
       );
 
-      await updateSummaryMessage();
+      await refreshSummary();
     }
 
     else if (data === 'back') {
@@ -428,7 +386,7 @@ setInterval(() => {
     now.getMinutes() === 0
   ) {
 
-    updateSummaryMessage();
+    refreshSummary();
   }
 
 }, 60000);
