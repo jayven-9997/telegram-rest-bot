@@ -301,6 +301,12 @@ async function updateSummary() {
   }
 }
 
+setTimeout(() => {
+
+  updateSummary();
+
+}, 3000);
+
 bot.onText(/\/start/, async (msg) => {
 
   await bot.sendMessage(
@@ -310,13 +316,6 @@ bot.onText(/\/start/, async (msg) => {
       reply_markup: buildDateKeyboard()
     }
   );
-
-  const msg2 = await bot.sendMessage(
-  GROUP_ID,
-  buildSummaryText()
-);
-
-summaryMessageId = msg2.message_id;
 });
 
 bot.on('callback_query', async (query) => {
@@ -378,14 +377,17 @@ bot.on('callback_query', async (query) => {
 
       saveData();
 
-      await bot.editMessageReplyMarkup(
-        buildStallKeyboard(date),
+      await bot.editMessageText(
+        buildDateText(date),
         {
           chat_id:
             query.message.chat.id,
 
           message_id:
-            query.message.message_id
+            query.message.message_id,
+
+          reply_markup:
+            buildStallKeyboard(date)
         }
       );
 
