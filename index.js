@@ -462,3 +462,9 @@ setInterval(() => {
   }
 
 }, 60000);
+
+bot.on('message', (msg) => {
+
+  console.log(msg.chat.id);
+
+});
