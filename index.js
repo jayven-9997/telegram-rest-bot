@@ -406,22 +406,36 @@ bot.onText(/\/start/, async (msg) => {
     msg.chat.type === 'private'
   ) {
 
-    return bot.sendMessage(
-      msg.chat.id,
+   return bot.sendMessage(
+  msg.chat.id,
 
 `👋欢迎使用档口休息系统
 
 📌负责人功能：
 
-/join 档口号码
+👉 /join 801
 加入档口
 
-/leave 档口号码
+👉 /leave 801
 退出档口
 
-/myid
-查看你的ID`
-    );
+👉 /myid
+查看你的ID`,
+
+{
+  reply_markup: {
+    keyboard: [
+      [{ text:'/join ' }],
+      [{ text:'/leave ' }],
+      [{ text:'/myid' }]
+    ],
+    resize_keyboard: true,
+    input_field_placeholder:
+      '请输入档口号码'
+  }
+}
+
+);
   }
 
   // 群组
