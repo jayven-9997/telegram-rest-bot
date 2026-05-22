@@ -309,8 +309,10 @@ bot.onText(/\/start/, async (msg) => {
       reply_markup: buildDateKeyboard()
     }
   );
-});
 
+  await refreshSummary();
+
+});
 bot.on('callback_query', async (query) => {
 
   try {
