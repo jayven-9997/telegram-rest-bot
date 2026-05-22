@@ -12,7 +12,7 @@ app.get('/', (req, res) => {
 
 app.listen(process.env.PORT || 3000);
 
-const GROUP_ID = -100XXXXXXXXXX;
+const GROUP_ID = -1001234567890;
 
 const WEBHOOK_URL =
 'https://telegram-rest-bot.onrender.com';
