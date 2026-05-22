@@ -225,7 +225,7 @@ function buildSummaryText() {
 
   const days = getNext10Days();
 
-  let text = `📋未来10天总览\n\n`;
+  let text = `📋未来10天休息总览\n\n`;
 
   days.forEach(date => {
 
@@ -271,29 +271,29 @@ function buildSummaryText() {
   return text;
 }
 
-async function updateSummary() {
+async function createSummaryMessage() {
+
+  const msg = await bot.sendMessage(
+    GROUP_ID,
+    buildSummaryText()
+  );
+
+  summaryMessageId = msg.message_id;
+}
+
+async function updateSummaryMessage() {
+
+  if (!summaryMessageId) return;
 
   try {
 
-    if (summaryMessageId) {
-
-      await bot.editMessageText(
-        buildSummaryText(),
-        {
-          chat_id: GROUP_ID,
-          message_id: summaryMessageId
-        }
-      );
-
-    } else {
-
-      const msg = await bot.sendMessage(
-        GROUP_ID,
-        buildSummaryText()
-      );
-
-      summaryMessageId = msg.message_id;
-    }
+    await bot.editMessageText(
+      buildSummaryText(),
+      {
+        chat_id: GROUP_ID,
+        message_id: summaryMessageId
+      }
+    );
 
   } catch(err) {
 
@@ -303,7 +303,7 @@ async function updateSummary() {
 
 setTimeout(() => {
 
-  updateSummary();
+  createSummaryMessage();
 
 }, 3000);
 
@@ -391,7 +391,7 @@ bot.on('callback_query', async (query) => {
         }
       );
 
-      await updateSummary();
+      await updateSummaryMessage();
     }
 
     else if (data === 'back') {
@@ -428,7 +428,7 @@ setInterval(() => {
     now.getMinutes() === 0
   ) {
 
-    updateSummary();
+    updateSummaryMessage();
   }
 
 }, 60000);
