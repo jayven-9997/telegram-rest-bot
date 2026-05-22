@@ -273,6 +273,41 @@ async function refreshSummary() {
 
       try {
 
+        await bot.editMessageText(
+          buildSummaryText(),
+          {
+            chat_id: GROUP_ID,
+            message_id: summaryMessageId
+          }
+        );
+
+        return;
+
+      } catch(e) {
+
+        console.log('edit fail');
+      }
+    }
+
+    const msg = await bot.sendMessage(
+      GROUP_ID,
+      buildSummaryText()
+    );
+
+    summaryMessageId = msg.message_id;
+
+  } catch(err) {
+
+    console.log(err.message);
+  }
+} {
+
+  try {
+
+    if (summaryMessageId) {
+
+      try {
+
         await bot.deleteMessage(
           GROUP_ID,
           summaryMessageId
