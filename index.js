@@ -463,8 +463,11 @@ setInterval(() => {
 
 }, 60000);
 
-bot.on('message', (msg) => {
+bot.onText(/\/id/, async (msg) => {
 
-  console.log(msg.chat.id);
+  await bot.sendMessage(
+    msg.chat.id,
+    `群组ID: ${msg.chat.id}`
+  );
 
 });
