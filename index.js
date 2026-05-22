@@ -15,9 +15,29 @@ const GROUP_ID = -5260137598;
 const bot = new TelegramBot(
   process.env.BOT_TOKEN,
   {
-    polling: true
+    polling: {
+      autoStart: false
+    }
   }
 );
+
+async function startBot() {
+
+  try {
+
+    await bot.deleteWebHook();
+
+    await bot.startPolling();
+
+    console.log('Bot started');
+
+  } catch(err) {
+
+    console.log(err.message);
+  }
+}
+
+startBot();
 
 const stalls = [
 
