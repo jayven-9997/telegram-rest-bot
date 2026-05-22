@@ -1,3 +1,5 @@
+// ===== TELEGRAM 档口休息系统 V3 商业版 =====
+
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 const fs = require('fs');
@@ -13,6 +15,8 @@ app.get('/', (req, res) => {
 app.listen(process.env.PORT || 3000);
 
 const GROUP_ID = -1003518294043;
+
+const ADMIN_ID = 990373699;
 
 const WEBHOOK_URL =
 'https://telegram-rest-bot.onrender.com';
@@ -34,6 +38,8 @@ app.post(
     res.sendStatus(200);
   }
 );
+
+// ===== 档口资料 =====
 
 const stalls = [
 
@@ -79,8 +85,10 @@ const stalls = [
 
 ];
 
-let schedule = {};
+// ===== 数据 =====
 
+let schedule = {};
+let owners = {};
 let summaryMessageId = null;
 
 if (fs.existsSync('save.json')) {
@@ -90,13 +98,27 @@ if (fs.existsSync('save.json')) {
   );
 }
 
+if (fs.existsSync('owners.json')) {
+
+  owners = JSON.parse(
+    fs.readFileSync('owners.json')
+  );
+}
+
 function saveData() {
 
   fs.writeFileSync(
     'save.json',
     JSON.stringify(schedule)
   );
+
+  fs.writeFileSync(
+    'owners.json',
+    JSON.stringify(owners)
+  );
 }
+
+// ===== 日期 =====
 
 function getNext10Days() {
 
@@ -118,6 +140,8 @@ function getNext10Days() {
 
   return days;
 }
+
+// ===== 统计班次 =====
 
 function countShift(date, shift) {
 
@@ -142,6 +166,19 @@ function countShift(date, shift) {
 
   return count;
 }
+
+// ===== 权限 =====
+
+function hasPermission(userId, stallId) {
+
+  if (userId === ADMIN_ID) return true;
+
+  if (!owners[stallId]) return false;
+
+  return owners[stallId].includes(userId);
+}
+
+// ===== 日期按钮 =====
 
 function buildDateKeyboard() {
 
@@ -168,6 +205,8 @@ function buildDateKeyboard() {
     inline_keyboard: keyboard
   };
 }
+
+// ===== 档口按钮 =====
 
 function buildStallKeyboard(date) {
 
@@ -212,6 +251,8 @@ function buildStallKeyboard(date) {
   };
 }
 
+// ===== 日期内容 =====
+
 function buildDateText(date) {
 
   const closed = schedule[date] || [];
@@ -237,13 +278,15 @@ function buildDateText(date) {
       if (stall) {
 
         text +=
-          `\n${stall.id} ${stall.name}【${stall.type}】`;
+          `\n${stall.id} ${stall.name}`;
       }
     });
   }
 
   return text;
 }
+
+// ===== 总览 =====
 
 function buildSummaryText() {
 
@@ -317,6 +360,8 @@ function buildSummaryText() {
   return text;
 }
 
+// ===== 更新总览 =====
+
 async function refreshSummary() {
 
   try {
@@ -351,6 +396,8 @@ async function refreshSummary() {
   }
 }
 
+// ===== START =====
+
 bot.onText(/\/start/, async (msg) => {
 
   await refreshSummary();
@@ -364,11 +411,208 @@ bot.onText(/\/start/, async (msg) => {
   );
 });
 
+// ===== MYID =====
+
+bot.onText(/\/myid/, async (msg) => {
+
+  if (
+    msg.chat.type !== 'private'
+  ) {
+
+    return bot.sendMessage(
+      msg.chat.id,
+      '⚠️请私聊机器人获取ID'
+    );
+  }
+
+  await bot.sendMessage(
+    msg.chat.id,
+    `你的ID: ${msg.from.id}`
+  );
+
+});
+
+// ===== JOIN =====
+
+bot.onText(/\/join (.+)/, async (msg, match) => {
+
+  if (
+    msg.chat.type !== 'private'
+  ) return;
+
+  const stallId = match[1];
+
+  const stall =
+    stalls.find(s => s.id === stallId);
+
+  if (!stall) {
+
+    return bot.sendMessage(
+      msg.chat.id,
+      '❌档口不存在'
+    );
+  }
+
+  if (!owners[stallId]) {
+
+    owners[stallId] = [];
+  }
+
+  if (
+    owners[stallId].includes(msg.from.id)
+  ) {
+
+    return bot.sendMessage(
+      msg.chat.id,
+      '⚠️你已经是负责人'
+    );
+  }
+
+  if (
+    owners[stallId].length >= 2
+  ) {
+
+    return bot.sendMessage(
+      msg.chat.id,
+      '⚠️负责人已满'
+    );
+  }
+
+  await bot.sendMessage(
+    msg.chat.id,
+    `确认加入：
+
+${stall.id} ${stall.name}`,
+    {
+      reply_markup: {
+        inline_keyboard: [[
+          {
+            text:'✅确认',
+            callback_data:
+              `joinconfirm_${stallId}`
+          },
+          {
+            text:'❌取消',
+            callback_data:'cancel'
+          }
+        ]]
+      }
+    }
+  );
+});
+
+// ===== LEAVE =====
+
+bot.onText(/\/leave (.+)/, async (msg, match) => {
+
+  if (
+    msg.chat.type !== 'private'
+  ) return;
+
+  const stallId = match[1];
+
+  const stall =
+    stalls.find(s => s.id === stallId);
+
+  if (!stall) {
+
+    return bot.sendMessage(
+      msg.chat.id,
+      '❌档口不存在'
+    );
+  }
+
+  await bot.sendMessage(
+    msg.chat.id,
+    `确认退出：
+
+${stall.id} ${stall.name}`,
+    {
+      reply_markup: {
+        inline_keyboard: [[
+          {
+            text:'✅确认',
+            callback_data:
+              `leaveconfirm_${stallId}`
+          },
+          {
+            text:'❌取消',
+            callback_data:'cancel'
+          }
+        ]]
+      }
+    }
+  );
+});
+
+// ===== OWNERS =====
+
+bot.onText(/\/owners (.+)/, async (msg, match) => {
+
+  if (
+    msg.from.id !== ADMIN_ID
+  ) return;
+
+  const stallId = match[1];
+
+  const stall =
+    stalls.find(s => s.id === stallId);
+
+  if (!stall) return;
+
+  let text =
+`${stall.id} ${stall.name}
+
+`;
+
+  if (
+    !owners[stallId] ||
+    owners[stallId].length === 0
+  ) {
+
+    text += '暂无负责人';
+
+    return bot.sendMessage(
+      msg.chat.id,
+      text
+    );
+  }
+
+  let keyboard = [];
+
+  owners[stallId].forEach(userId => {
+
+    text += `👤 ${userId}\n`;
+
+    keyboard.push([
+      {
+        text:`❌移除 ${userId}`,
+        callback_data:
+          `remove_${stallId}_${userId}`
+      }
+    ]);
+  });
+
+  await bot.sendMessage(
+    msg.chat.id,
+    text,
+    {
+      reply_markup: {
+        inline_keyboard: keyboard
+      }
+    }
+  );
+});
+
+// ===== 按钮 =====
+
 bot.on('callback_query', async (query) => {
 
   try {
 
     const data = query.data;
+
+    // ===== 日期 =====
 
     if (data.startsWith('date_')) {
 
@@ -392,13 +636,176 @@ bot.on('callback_query', async (query) => {
       return;
     }
 
-    if (data.startsWith('stall_')) {
+    // ===== JOIN CONFIRM =====
+
+    if (
+      data.startsWith(
+        'joinconfirm_'
+      )
+    ) {
+
+      const stallId =
+        data.replace(
+          'joinconfirm_',
+          ''
+        );
+
+      if (!owners[stallId]) {
+
+        owners[stallId] = [];
+      }
+
+      if (
+        owners[stallId].length >= 2
+      ) {
+
+        return bot.answerCallbackQuery(
+          query.id,
+          {
+            text:'⚠️负责人已满',
+            show_alert:true
+          }
+        );
+      }
+
+      owners[stallId].push(
+        query.from.id
+      );
+
+      saveData();
+
+      return bot.editMessageText(
+        '✅加入成功',
+        {
+          chat_id:
+            query.message.chat.id,
+
+          message_id:
+            query.message.message_id
+        }
+      );
+    }
+
+    // ===== LEAVE CONFIRM =====
+
+    if (
+      data.startsWith(
+        'leaveconfirm_'
+      )
+    ) {
+
+      const stallId =
+        data.replace(
+          'leaveconfirm_',
+          ''
+        );
+
+      if (!owners[stallId]) {
+
+        owners[stallId] = [];
+      }
+
+      owners[stallId] =
+        owners[stallId].filter(
+          x => x !== query.from.id
+        );
+
+      saveData();
+
+      return bot.editMessageText(
+        '✅退出成功',
+        {
+          chat_id:
+            query.message.chat.id,
+
+          message_id:
+            query.message.message_id
+        }
+      );
+    }
+
+    // ===== REMOVE =====
+
+    if (
+      data.startsWith('remove_')
+    ) {
+
+      if (
+        query.from.id !== ADMIN_ID
+      ) return;
+
+      const parts =
+        data.split('_');
+
+      const stallId = parts[1];
+
+      const userId =
+        Number(parts[2]);
+
+      owners[stallId] =
+        owners[stallId].filter(
+          x => x !== userId
+        );
+
+      saveData();
+
+      return bot.editMessageText(
+        '✅已移除负责人',
+        {
+          chat_id:
+            query.message.chat.id,
+
+          message_id:
+            query.message.message_id
+        }
+      );
+    }
+
+    // ===== CANCEL =====
+
+    if (data === 'cancel') {
+
+      return bot.editMessageText(
+        '❌已取消',
+        {
+          chat_id:
+            query.message.chat.id,
+
+          message_id:
+            query.message.message_id
+        }
+      );
+    }
+
+    // ===== 档口 =====
+
+    if (
+      data.startsWith('stall_')
+    ) {
 
       const parts = data.split('_');
 
       const date = parts[1];
 
       const stallId = parts[2];
+
+      // ===== 权限检查 =====
+
+      if (
+        !hasPermission(
+          query.from.id,
+          stallId
+        )
+      ) {
+
+        return bot.answerCallbackQuery(
+          query.id,
+          {
+            text:'⚠️你没有权限操作这个档口',
+            show_alert:true
+          }
+        );
+      }
 
       const stall =
         stalls.find(s => s.id === stallId);
@@ -497,6 +904,8 @@ bot.on('callback_query', async (query) => {
       return;
     }
 
+    // ===== 返回 =====
+
     if (data === 'back') {
 
       await bot.editMessageText(
@@ -519,6 +928,8 @@ bot.on('callback_query', async (query) => {
     console.log(err.message);
   }
 });
+
+// ===== 自动总览 =====
 
 setInterval(async () => {
 
@@ -555,12 +966,3 @@ setInterval(async () => {
   }
 
 }, 60000);
-
-bot.onText(/\/myid/, async (msg) => {
-
-  await bot.sendMessage(
-    msg.chat.id,
-    `你的ID: ${msg.from.id}`
-  );
-
-});
