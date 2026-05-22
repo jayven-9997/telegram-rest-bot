@@ -37,45 +37,45 @@ app.post(
 
 const stalls = [
 
-{ id:'888', name:'杂菜饭' },
-{ id:'801', name:'桦记椰浆饭' },
-{ id:'802', name:'大姑猪肠粉' },
-{ id:'803', name:'鱼头米粉' },
-{ id:'804', name:'许记云吞面' },
-{ id:'805', name:'福州美食' },
-{ id:'806', name:'吉祥面粉粿' },
-{ id:'807', name:'大吉咖喱鱼头' },
-{ id:'808', name:'包点' },
-{ id:'809', name:'JC煮炒' },
-{ id:'810', name:'肉骨茶' },
-{ id:'811', name:'兰姐砂锅菜' },
-{ id:'812', name:'日本餐' },
-{ id:'813', name:'老陈粿条汤' },
-{ id:'815', name:'药材鱼汤' },
-{ id:'816', name:'监牢饭' },
-{ id:'817', name:'薄饼' },
-{ id:'818', name:'ROJAK' },
-{ id:'819', name:'鹿鼎记' },
-{ id:'820', name:'面包王' },
-{ id:'823', name:'麻辣烫' },
-{ id:'824', name:'靓汤王' },
-{ id:'826', name:'擂茶' },
-{ id:'827', name:'可爱粥' },
-{ id:'829', name:'可爱鸡' },
-{ id:'830', name:'古早味云吞面' },
-{ id:'831', name:'228炒粿条' },
-{ id:'832', name:'老黄酿豆腐' },
-{ id:'833', name:'西餐' },
-{ id:'834', name:'鸡饭' },
-{ id:'835', name:'泰国炒' },
-{ id:'901', name:'二哥汉堡' },
-{ id:'902', name:'面粉粿' },
-{ id:'903', name:'SATAY' },
-{ id:'904', name:'烤鸡翅膀' },
-{ id:'905', name:'烧鱼' },
-{ id:'906', name:'经济米粉' },
-{ id:'907', name:'油条' },
-{ id:'908', name:'糕点' }
+{ id:'888', name:'杂菜饭', type:'早' },
+{ id:'801', name:'桦记椰浆饭', type:'早' },
+{ id:'802', name:'大姑猪肠粉', type:'早' },
+{ id:'803', name:'鱼头米粉', type:'早晚' },
+{ id:'804', name:'许记云吞面', type:'早' },
+{ id:'805', name:'福州美食', type:'早' },
+{ id:'806', name:'吉祥面粉粿', type:'早' },
+{ id:'807', name:'大吉咖喱鱼头', type:'晚' },
+{ id:'808', name:'包点', type:'早' },
+{ id:'809', name:'JC煮炒', type:'早晚' },
+{ id:'810', name:'肉骨茶', type:'早晚' },
+{ id:'811', name:'兰姐砂锅菜', type:'早晚' },
+{ id:'812', name:'日本餐', type:'早晚' },
+{ id:'813', name:'老陈粿条汤', type:'早晚' },
+{ id:'815', name:'药材鱼汤', type:'早晚' },
+{ id:'816', name:'监牢饭', type:'早晚' },
+{ id:'817', name:'薄饼', type:'早晚' },
+{ id:'818', name:'ROJAK', type:'早晚' },
+{ id:'819', name:'鹿鼎记', type:'早' },
+{ id:'820', name:'面包王', type:'早' },
+{ id:'823', name:'麻辣烫', type:'晚' },
+{ id:'824', name:'靓汤王', type:'早晚' },
+{ id:'826', name:'擂茶', type:'早' },
+{ id:'827', name:'可爱粥', type:'晚' },
+{ id:'829', name:'可爱鸡', type:'晚' },
+{ id:'830', name:'古早味云吞面', type:'晚' },
+{ id:'831', name:'228炒粿条', type:'早晚' },
+{ id:'832', name:'老黄酿豆腐', type:'早晚' },
+{ id:'833', name:'西餐', type:'晚' },
+{ id:'834', name:'鸡饭', type:'早' },
+{ id:'835', name:'泰国炒', type:'早晚' },
+{ id:'901', name:'二哥汉堡', type:'晚' },
+{ id:'902', name:'面粉粿', type:'晚' },
+{ id:'903', name:'SATAY', type:'晚' },
+{ id:'904', name:'烤鸡翅膀', type:'晚' },
+{ id:'905', name:'烧鱼', type:'晚' },
+{ id:'906', name:'经济米粉', type:'晚' },
+{ id:'907', name:'油条', type:'早' },
+{ id:'908', name:'糕点', type:'早' }
 
 ];
 
@@ -117,6 +117,30 @@ function getNext10Days() {
   }
 
   return days;
+}
+
+function countShift(date, shift) {
+
+  const closed = schedule[date] || [];
+
+  let count = 0;
+
+  closed.forEach(id => {
+
+    const stall =
+      stalls.find(s => s.id === id);
+
+    if (!stall) return;
+
+    if (
+      stall.type === shift ||
+      stall.type === '早晚'
+    ) {
+      count++;
+    }
+  });
+
+  return count;
 }
 
 function buildDateKeyboard() {
@@ -165,8 +189,8 @@ function buildStallKeyboard(date) {
       row.push({
 
         text: isClosed
-          ? `🔴${stall.id}`
-          : `🟢${stall.id}`,
+          ? `🔴${stall.id} ${stall.name}【${stall.type}】`
+          : `🟢${stall.id} ${stall.name}【${stall.type}】`,
 
         callback_data:
           `stall_${date}_${stall.id}`
@@ -194,6 +218,9 @@ function buildDateText(date) {
 
   let text = `📅 ${date}\n\n`;
 
+  text += `🌞早班休息：${countShift(date,'早')}/3\n`;
+  text += `🌙晚班休息：${countShift(date,'晚')}/3\n\n`;
+
   text += `🔴休息档口：\n`;
 
   if (closed.length === 0) {
@@ -209,7 +236,8 @@ function buildDateText(date) {
 
       if (stall) {
 
-        text += `\n${stall.id} ${stall.name}`;
+        text +=
+          `\n${stall.id} ${stall.name}【${stall.type}】`;
       }
     });
   }
@@ -233,6 +261,9 @@ function buildSummaryText() {
 
     } else {
 
+      text += `🌞早班 ${countShift(date,'早')}/3\n`;
+      text += `🌙晚班 ${countShift(date,'晚')}/3\n`;
+
       for (let i = 0; i < closed.length; i += 2) {
 
         let row = '';
@@ -251,7 +282,7 @@ function buildSummaryText() {
           if (stall) {
 
             row +=
-              `🔴${stall.id} ${stall.name}   `;
+              `🔴${stall.id} `;
           }
         }
 
@@ -283,10 +314,7 @@ async function refreshSummary() {
 
         return;
 
-      } catch(e) {
-
-        console.log('edit fail');
-      }
+      } catch(e) {}
     }
 
     const msg = await bot.sendMessage(
@@ -313,16 +341,6 @@ bot.onText(/\/start/, async (msg) => {
   );
 
   await refreshSummary();
-
-});
-
-bot.onText(/\/id/, async (msg) => {
-
-  await bot.sendMessage(
-    msg.chat.id,
-    `群组ID: ${msg.chat.id}`
-  );
-
 });
 
 bot.on('callback_query', async (query) => {
@@ -363,14 +381,18 @@ bot.on('callback_query', async (query) => {
 
       const stallId = parts[2];
 
+      const stall =
+        stalls.find(s => s.id === stallId);
+
       if (!schedule[date]) {
 
         schedule[date] = [];
       }
 
-      if (
-        schedule[date].includes(stallId)
-      ) {
+      const alreadyClosed =
+        schedule[date].includes(stallId);
+
+      if (alreadyClosed) {
 
         schedule[date] =
           schedule[date].filter(
@@ -378,6 +400,59 @@ bot.on('callback_query', async (query) => {
           );
 
       } else {
+
+        const earlyCount =
+          countShift(date,'早');
+
+        const nightCount =
+          countShift(date,'晚');
+
+        if (
+          (stall.type === '早' &&
+           earlyCount >= 3)
+        ) {
+
+          return bot.answerCallbackQuery(
+            query.id,
+            {
+              text:'⚠️早班休息已满',
+              show_alert:true
+            }
+          );
+        }
+
+        if (
+          (stall.type === '晚' &&
+           nightCount >= 3)
+        ) {
+
+          return bot.answerCallbackQuery(
+            query.id,
+            {
+              text:'⚠️晚班休息已满',
+              show_alert:true
+            }
+          );
+        }
+
+        if (
+          stall.type === '早晚'
+        ) {
+
+          if (
+            earlyCount >= 3 ||
+            nightCount >= 3
+          ) {
+
+            return bot.answerCallbackQuery(
+              query.id,
+              {
+                text:'⚠️早晚班休息已满',
+                show_alert:true
+              }
+            );
+          }
+        }
 
         schedule[date].push(stallId);
       }
