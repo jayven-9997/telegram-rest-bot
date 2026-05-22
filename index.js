@@ -413,10 +413,10 @@ bot.onText(/\/start/, async (msg) => {
 
 📌负责人功能：
 
-/join 801
+/join 档口号码
 加入档口
 
-/leave 801
+/leave 档口号码
 退出档口
 
 /myid
