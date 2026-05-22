@@ -251,46 +251,64 @@ function buildSummaryText() {
 
   getNext10Days().forEach(date => {
 
-    text += `📅 ${date.slice(5)}\n`;
+    text += `📅${date.slice(5)}\n\n`;
 
     const closed = schedule[date] || [];
 
-    if (closed.length === 0) {
+    const early = [];
+    const night = [];
 
-      text += '🟢全部营业\n\n';
+    closed.forEach(id => {
+
+      const stall =
+        stalls.find(s => s.id === id);
+
+      if (!stall) return;
+
+      if (
+        stall.type === '早' ||
+        stall.type === '早晚'
+      ) {
+
+        early.push(
+          `🔴${stall.id} ${stall.name}`
+        );
+      }
+
+      if (
+        stall.type === '晚' ||
+        stall.type === '早晚'
+      ) {
+
+        night.push(
+          `🔴${stall.id} ${stall.name}`
+        );
+      }
+    });
+
+    text += '🌞早班\n';
+
+    if (early.length === 0) {
+
+      text += '🟢无\n';
 
     } else {
 
-      text += `🌞早班 ${countShift(date,'早')}/3\n`;
-      text += `🌙晚班 ${countShift(date,'晚')}/3\n`;
-
-      for (let i = 0; i < closed.length; i += 2) {
-
-        let row = '';
-
-        for (
-          let j = i;
-          j < i + 2 && j < closed.length;
-          j++
-        ) {
-
-          const stall =
-            stalls.find(
-              s => s.id === closed[j]
-            );
-
-          if (stall) {
-
-            row +=
-              `🔴${stall.id} `;
-          }
-        }
-
-        text += row + '\n';
-      }
-
-      text += '\n';
+      text += early.join('\n') + '\n';
     }
+
+    text += '\n🌙晚班\n';
+
+    if (night.length === 0) {
+
+      text += '🟢无\n';
+
+    } else {
+
+      text += night.join('\n') + '\n';
+    }
+
+    text += '\n';
   });
 
   return text;
