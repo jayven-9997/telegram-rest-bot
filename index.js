@@ -400,6 +400,32 @@ async function refreshSummary() {
 
 bot.onText(/\/start/, async (msg) => {
 
+  // 私聊
+
+  if (
+    msg.chat.type === 'private'
+  ) {
+
+    return bot.sendMessage(
+      msg.chat.id,
+
+`👋欢迎使用档口休息系统
+
+📌负责人功能：
+
+/join 801
+加入档口
+
+/leave 801
+退出档口
+
+/myid
+查看你的ID`
+    );
+  }
+
+  // 群组
+
   await refreshSummary();
 
   await bot.sendMessage(
@@ -409,6 +435,7 @@ bot.onText(/\/start/, async (msg) => {
       reply_markup: buildDateKeyboard()
     }
   );
+
 });
 
 // ===== MYID =====
