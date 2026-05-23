@@ -58,7 +58,7 @@ const stalls = [
 { id:'811', name:'兰姐砂锅菜', type:'早晚' },
 { id:'812', name:'日本餐', type:'早晚' },
 { id:'813', name:'老陈粿条汤', type:'早晚' },
-{ id:'815', name:'药材鱼汤', type:'早晚' },
+{ id:'815', name:'药材鸡汤', type:'早晚' },
 { id:'816', name:'监牢饭', type:'早晚' },
 { id:'817', name:'薄饼', type:'早晚' },
 { id:'818', name:'ROJAK', type:'早晚' },
@@ -1015,3 +1015,23 @@ cron.schedule(
     timezone: 'Asia/Kuala_Lumpur'
   }
 );
+
+// ===== 新人欢迎 =====
+
+bot.on('new_chat_members', async (msg) => {
+
+  await bot.sendMessage(
+    msg.chat.id,
+
+`📢 東南大三元休息群规则通知
+
+欢迎加入本群，
+
+请先私聊机器人：
+
+/join 档口号码
+
+领取权限。`
+  );
+
+});
