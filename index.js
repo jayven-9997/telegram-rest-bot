@@ -431,20 +431,33 @@ bot.onText(/\/start/, async (msg) => {
 );
   }
 
-  // 群组
 
-  await refreshSummary();
+// 群组
 
-  await bot.sendMessage(
-    msg.chat.id,
-    '📅请选择日期',
-    {
-      reply_markup: buildDateKeyboard()
+await refreshSummary();
+
+await bot.sendMessage(
+  msg.chat.id,
+  '📅点击打开休息系统',
+  {
+    reply_markup: {
+      inline_keyboard: [[
+        {
+          text:'📅打开
+await bot.sendMessage(
+  msg.chat.id,
+  '📅点击打开休息系统',
+  {
+    reply_markup: {
+      inline_keyboard: [[
+        {
+          text:'📅打开系统',
+          callback_data:'open_system'
+        }
+      ]]
     }
-  );
-
-});
-
+  }
+);
 // ===== MYID =====
 
 bot.onText(/\/myid/, async (msg) => {
@@ -646,6 +659,39 @@ bot.on('callback_query', async (query) => {
 
     const data = query.data;
 
+    // ===== 打开系统 =====
+
+    if (data === 'open_system') {
+
+      try {
+
+        await bot.sendMessage(
+          query.from.id,
+          '📅请选择日期',
+          {
+            reply_markup: buildDateKeyboard()
+          }
+        );
+
+        return bot.answerCallbackQuery(
+          query.id,
+          {
+            text:'✅已发送到私聊'
+          }
+        );
+
+      } catch(err) {
+
+        return bot.answerCallbackQuery(
+          query.id,
+          {
+            text:'⚠️请先私聊机器人一次',
+            show_alert:true
+          }
+        );
+      }
+    }
+
     // ===== 日期 =====
 
     if (data.startsWith('date_')) {
@@ -657,7 +703,7 @@ bot.on('callback_query', async (query) => {
         buildDateText(date),
         {
           chat_id:
-            query.message.chat.id,
+            query.from.id,
 
           message_id:
             query.message.message_id,
@@ -712,7 +758,7 @@ bot.on('callback_query', async (query) => {
         '✅加入成功',
         {
           chat_id:
-            query.message.chat.id,
+            query.from.id,
 
           message_id:
             query.message.message_id
@@ -750,44 +796,7 @@ bot.on('callback_query', async (query) => {
         '✅退出成功',
         {
           chat_id:
-            query.message.chat.id,
-
-          message_id:
-            query.message.message_id
-        }
-      );
-    }
-
-    // ===== REMOVE =====
-
-    if (
-      data.startsWith('remove_')
-    ) {
-
-      if (
-        query.from.id !== ADMIN_ID
-      ) return;
-
-      const parts =
-        data.split('_');
-
-      const stallId = parts[1];
-
-      const userId =
-        Number(parts[2]);
-
-      owners[stallId] =
-        owners[stallId].filter(
-          x => x !== userId
-        );
-
-      saveData();
-
-      return bot.editMessageText(
-        '✅已移除负责人',
-        {
-          chat_id:
-            query.message.chat.id,
+            query.from.id,
 
           message_id:
             query.message.message_id
@@ -803,7 +812,7 @@ bot.on('callback_query', async (query) => {
         '❌已取消',
         {
           chat_id:
-            query.message.chat.id,
+            query.from.id,
 
           message_id:
             query.message.message_id
@@ -822,8 +831,6 @@ bot.on('callback_query', async (query) => {
       const date = parts[1];
 
       const stallId = parts[2];
-
-      // ===== 权限检查 =====
 
       if (
         !hasPermission(
@@ -913,23 +920,21 @@ bot.on('callback_query', async (query) => {
             );
           }
         }
-        
-// ===== 每月限制 =====
 
-const monthlyCount =
-  countMonthlyRest(stallId);
+        const monthlyCount =
+          countMonthlyRest(stallId);
 
-if (monthlyCount >= 2) {
+        if (monthlyCount >= 2) {
 
-  return bot.answerCallbackQuery(
-    query.id,
-    {
-      text:'⚠️一个月最多休息两天',
-      show_alert:true
-    }
-  );
-}
-        
+          return bot.answerCallbackQuery(
+            query.id,
+            {
+              text:'⚠️一个月最多休息两天',
+              show_alert:true
+            }
+          );
+        }
+
         schedule[date].push(stallId);
       }
 
@@ -939,7 +944,7 @@ if (monthlyCount >= 2) {
         buildDateText(date),
         {
           chat_id:
-            query.message.chat.id,
+            query.from.id,
 
           message_id:
             query.message.message_id,
@@ -962,7 +967,7 @@ if (monthlyCount >= 2) {
         '📅请选择日期',
         {
           chat_id:
-            query.message.chat.id,
+            query.from.id,
 
           message_id:
             query.message.message_id,
@@ -1050,7 +1055,9 @@ bot.on('new_chat_members', async (msg) => {
 
 `👋欢迎 ${count} 位新成员加入
 
-📢 请先私聊机器人：
+📢 東南大三元休息群规则
+
+请先私聊机器人：
 
 /join 档口号码
 
