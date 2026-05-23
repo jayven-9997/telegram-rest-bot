@@ -350,7 +350,7 @@ function buildSummaryText() {
 
     });
 
-    text += `\n📅 ${date.slice(5)}\n`;
+    text += `\n━━━━ 📅 ${date.slice(5)} ━━━━\n`;
 
     if (names.length === 0) {
 
