@@ -959,38 +959,59 @@ bot.on('callback_query', async (query) => {
 
 // ===== 自动总览 =====
 
-setInterval(async () => {
+// ===== 自动发送 V4 =====
 
-  const now = new Date();
+async function sendAutoSummary(title) {
 
-  if (
-    (now.getHours() === 7 ||
-     now.getHours() === 19)
-    &&
-    now.getMinutes() === 0
-  ) {
+  try {
 
-    try {
+    const msg = await bot.sendMessage(
+      GROUP_ID,
+      `${title}\n\n${buildSummaryText()}`
+    );
 
-      const msg = await bot.sendMessage(
-        GROUP_ID,
-        buildSummaryText()
-      );
+    summaryMessageId = msg.message_id;
 
-      summaryMessageId = msg.message_id;
+    await bot.pinChatMessage(
+      GROUP_ID,
+      summaryMessageId,
+      {
+        disable_notification: true
+      }
+    );
 
-      await bot.pinChatMessage(
-        GROUP_ID,
-        summaryMessageId,
-        {
-          disable_notification: true
-        }
-      );
+  } catch(err) {
 
-    } catch(err) {
-
-      console.log(err.message);
-    }
+    console.log(err.message);
   }
+}
 
-}, 60000);
+// ☀️早上7点
+cron.schedule(
+  '0 7 * * *',
+  async () => {
+
+    await sendAutoSummary(
+      '☀️早班休息总览'
+    );
+
+  },
+  {
+    timezone: 'Asia/Kuala_Lumpur'
+  }
+);
+
+// 🌙晚上7点
+cron.schedule(
+  '0 19 * * *',
+  async () => {
+
+    await sendAutoSummary(
+      '🌙晚班休息总览'
+    );
+
+  },
+  {
+    timezone: 'Asia/Kuala_Lumpur'
+  }
+);
