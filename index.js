@@ -121,11 +121,11 @@ function saveData() {
 
 // ===== 日期 =====
 
-function getNext10Days() {
+function getNext15Days() {
 
   let days = [];
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 15; i++) {
 
     let d = new Date();
 
@@ -168,6 +168,39 @@ function countShift(date, shift) {
   return count;
 }
 
+// ===== 每月休息次数 =====
+
+function countMonthlyRest(stallId) {
+
+  let count = 0;
+
+  const now = new Date();
+
+  const currentMonth =
+    now.getMonth();
+
+  const currentYear =
+    now.getFullYear();
+
+  Object.keys(schedule).forEach(date => {
+
+    const d = new Date(date);
+
+    if (
+      d.getMonth() === currentMonth &&
+      d.getFullYear() === currentYear &&
+      schedule[date] &&
+      schedule[date].includes(stallId)
+    ) {
+
+      count++;
+    }
+
+  });
+
+  return count;
+}
+
 // ===== 权限 =====
 
 function hasPermission(userId, stallId) {
@@ -183,7 +216,7 @@ function hasPermission(userId, stallId) {
 
 function buildDateKeyboard() {
 
-  const days = getNext10Days();
+  const days = getNext15Days();
 
   let keyboard = [];
 
@@ -291,71 +324,44 @@ function buildDateText(date) {
 
 function buildSummaryText() {
 
-  let text = '📋未来10天休息总览\n\n';
+  let text =
+'📋未来15天休息总览\n';
 
-  getNext10Days().forEach(date => {
+  getNext15Days().forEach(date => {
 
-    text +=
-`━━━ 📅 ${date.slice(5)} ━━━
+    const closed =
+      schedule[date] || [];
 
-`;
-
-    const closed = schedule[date] || [];
-
-    const early = [];
-    const night = [];
+    let names = [];
 
     closed.forEach(id => {
 
       const stall =
-        stalls.find(s => s.id === id);
+        stalls.find(
+          s => s.id === id
+        );
 
-      if (!stall) return;
+      if (stall) {
 
-      if (
-        stall.type === '早' ||
-        stall.type === '早晚'
-      ) {
-
-        early.push(
-          `🔴${stall.id} ${stall.name}`
+        names.push(
+          `${stall.id}`
         );
       }
 
-      if (
-        stall.type === '晚' ||
-        stall.type === '早晚'
-      ) {
-
-        night.push(
-          `🔴${stall.id} ${stall.name}`
-        );
-      }
     });
 
-    text += '🌞早班\n';
+    text += `\n📅 ${date.slice(5)}\n`;
 
-    if (early.length === 0) {
+    if (names.length === 0) {
 
-      text += '🟢无\n';
-
-    } else {
-
-      text += early.join('\n') + '\n';
-    }
-
-    text += '\n🌙晚班\n';
-
-    if (night.length === 0) {
-
-      text += '🟢无\n';
+      text += '🟢无休息\n';
 
     } else {
 
-      text += night.join('\n') + '\n';
+      text +=
+        `🔴 ${names.join('、')}\n`;
     }
 
-    text += '\n';
   });
 
   return text;
@@ -907,7 +913,23 @@ bot.on('callback_query', async (query) => {
             );
           }
         }
+        
+// ===== 每月限制 =====
 
+const monthlyCount =
+  countMonthlyRest(stallId);
+
+if (monthlyCount >= 2) {
+
+  return bot.answerCallbackQuery(
+    query.id,
+    {
+      text:'⚠️一个月最多休息两天',
+      show_alert:true
+    }
+  );
+}
+        
         schedule[date].push(stallId);
       }
 
@@ -1020,14 +1042,15 @@ cron.schedule(
 
 bot.on('new_chat_members', async (msg) => {
 
+  const count =
+    msg.new_chat_members.length;
+
   await bot.sendMessage(
     msg.chat.id,
 
-`📢 東南大三元休息群规则通知
+`👋欢迎 ${count} 位新成员加入
 
-欢迎加入本群，
-
-请先私聊机器人：
+📢 请先私聊机器人：
 
 /join 档口号码
 
