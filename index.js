@@ -413,8 +413,8 @@ bot.onText(/\/start/, async (msg) => {
     msg.chat.type === 'private'
   ) {
 
- return bot.sendMessage(
-  msg.chat.id,
+    return bot.sendMessage(
+      msg.chat.id,
 
 `👋欢迎使用档口休息系统
 
@@ -428,36 +428,29 @@ bot.onText(/\/start/, async (msg) => {
 
 /myid
 查看你的ID`
-);
+    );
   }
 
+  // 群组
 
-// 群组
+  await refreshSummary();
 
-await refreshSummary();
-
-await bot.sendMessage(
-  msg.chat.id,
-  '📅点击打开休息系统',
-  {
-    reply_markup: {
-      inline_keyboard: [[
-        {
-          text:'📅打开
-await bot.sendMessage(
-  msg.chat.id,
-  '📅点击打开休息系统',
-  {
-    reply_markup: {
-      inline_keyboard: [[
-        {
-          text:'📅打开系统',
-          callback_data:'open_system'
-        }
-      ]]
+  await bot.sendMessage(
+    msg.chat.id,
+    '📅点击打开休息系统',
+    {
+      reply_markup: {
+        inline_keyboard: [[
+          {
+            text:'📅打开系统',
+            callback_data:'open_system'
+          }
+        ]]
+      }
     }
-  }
-);
+  );
+
+});
 // ===== MYID =====
 
 bot.onText(/\/myid/, async (msg) => {
