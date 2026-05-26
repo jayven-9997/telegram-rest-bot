@@ -1021,9 +1021,19 @@ async function sendAutoSummary(title) {
   try {
 
     const msg = await bot.sendMessage(
-      GROUP_ID,
-      `${title}\n\n${buildSummaryText()}`
-    );
+  GROUP_ID,
+  `${title}\n\n${buildSummaryText()}`,
+  {
+    reply_markup: {
+      inline_keyboard: [[
+        {
+          text:'📅打开系统',
+          callback_data:'open_system'
+        }
+      ]]
+    }
+  }
+);
 
     summaryMessageId = msg.message_id;
 
