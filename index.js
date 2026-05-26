@@ -1,4 +1,4 @@
-// ===== TELEGRAM 档口休息系统 V3 商业版 =====
+// ===== TELEGRAM 档口休息系统 V5 商业版 =====
 
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
@@ -377,13 +377,22 @@ async function refreshSummary() {
 
       try {
 
-        await bot.editMessageText(
-          buildSummaryText(),
-          {
-            chat_id: GROUP_ID,
-            message_id: summaryMessageId
-          }
-        );
+       await bot.editMessageText(
+  buildSummaryText(),
+  {
+    chat_id: GROUP_ID,
+    message_id: summaryMessageId,
+
+    reply_markup: {
+      inline_keyboard: [[
+        {
+          text:'📅打开系统',
+          callback_data:'open_system'
+        }
+      ]]
+    }
+  }
+);
 
         return;
 
@@ -796,42 +805,6 @@ bot.on('callback_query', async (query) => {
         }
       );
     }
-// ===== REMOVE =====
-
-if (
-  data.startsWith('remove_')
-) {
-
-  if (
-    query.from.id !== ADMIN_ID
-  ) return;
-
-  const parts =
-    data.split('_');
-
-  const stallId = parts[1];
-
-  const userId =
-    Number(parts[2]);
-
-  owners[stallId] =
-    owners[stallId].filter(
-      x => x !== userId
-    );
-
-  saveData();
-
-  return bot.editMessageText(
-    '✅已移除负责人',
-    {
-      chat_id:
-        query.from.id,
-
-      message_id:
-        query.message.message_id
-    }
-  );
-}
 
     // ===== REMOVE =====
 
